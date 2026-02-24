@@ -1,23 +1,24 @@
-from database.db import get_db
+import sqlite3
+
+from database.db import DB_PATH
 
 
 def save_result(skin_type, products):
     """
     Legacy helper that stores generated product lists for a skin type.
-    Uses the same database connection as the rest of the app.
+    Uses the same database file as the rest of the app.
     """
-    conn = None
     try:
-        conn = get_db()
+        conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
 
         cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS result_products (
-                id BIGSERIAL PRIMARY KEY,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 skin_type TEXT NOT NULL,
                 products TEXT,
-                created_at TIMESTAMPTZ DEFAULT NOW()
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """
         )
@@ -30,15 +31,13 @@ def save_result(skin_type, products):
         cursor.execute(
             """
             INSERT INTO result_products (skin_type, products)
-            VALUES (%s, %s)
+            VALUES (?, ?)
             """,
             (skin_type, products_text),
         )
 
         conn.commit()
+        conn.close()
 
     except Exception as err:
         print(f"[WARN] Database save skipped: {err}")
-    finally:
-        if conn is not None:
-            conn.close()

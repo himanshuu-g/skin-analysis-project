@@ -1,43 +1,32 @@
 import os
+import sqlite3
 
-import psycopg2
-from psycopg2.extras import RealDictCursor
-
-
-def _normalize_database_url(database_url):
-    cleaned = str(database_url or "").strip()
-    if cleaned.startswith("postgres://"):
-        return cleaned.replace("postgres://", "postgresql://", 1)
-    return cleaned
+DB_PATH = os.path.join(os.path.dirname(__file__), "skin_care.db")
 
 
-DATABASE_URL = _normalize_database_url(os.getenv("DATABASE_URL"))
+def _table_has_column(conn, table_name, column_name):
+    cursor = conn.execute(f"PRAGMA table_info({table_name})")
+    return any(row[1] == column_name for row in cursor.fetchall())
 
 
-def _add_column_if_missing(conn, table_name, _column_name, column_definition):
-    with conn.cursor() as cursor:
-        cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS {column_definition}")
+def _add_column_if_missing(conn, table_name, column_name, column_definition):
+    if not _table_has_column(conn, table_name, column_name):
+        conn.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_definition}")
 
 
 def _ensure_results_schema(conn):
-    _add_column_if_missing(conn, "results", "user_id", "user_id BIGINT REFERENCES users(id)")
+    _add_column_if_missing(conn, "results", "user_id", "user_id INTEGER REFERENCES users(id)")
     _add_column_if_missing(conn, "results", "model_version", "model_version TEXT")
     _add_column_if_missing(conn, "results", "class_probabilities_json", "class_probabilities_json TEXT")
-    _add_column_if_missing(
-        conn,
-        "results",
-        "is_low_confidence",
-        "is_low_confidence BOOLEAN NOT NULL DEFAULT FALSE",
-    )
-    _add_column_if_missing(conn, "results", "inference_ms", "inference_ms DOUBLE PRECISION")
+    _add_column_if_missing(conn, "results", "is_low_confidence", "is_low_confidence INTEGER NOT NULL DEFAULT 0")
+    _add_column_if_missing(conn, "results", "inference_ms", "inference_ms REAL")
     _add_column_if_missing(conn, "results", "gradcam_image_path", "gradcam_image_path TEXT")
-    with conn.cursor() as cursor:
-        cursor.execute(
-            """
-            CREATE INDEX IF NOT EXISTS idx_results_user_id_created_at
-            ON results (user_id, created_at DESC)
-            """
-        )
+    conn.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_results_user_id_created_at
+        ON results (user_id, created_at DESC)
+        """
+    )
 
 
 def _ensure_users_schema(conn):
@@ -45,58 +34,48 @@ def _ensure_users_schema(conn):
 
 
 def get_db():
-    if not DATABASE_URL:
-        raise RuntimeError("DATABASE_URL is not set. Configure a PostgreSQL connection string.")
-
-    connect_kwargs = {"cursor_factory": RealDictCursor}
-    db_sslmode = str(os.getenv("DB_SSLMODE", "")).strip()
-    if db_sslmode:
-        connect_kwargs["sslmode"] = db_sslmode
-
-    conn = psycopg2.connect(DATABASE_URL, **connect_kwargs)
-
-    with conn.cursor() as cursor:
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS users (
-                id BIGSERIAL PRIMARY KEY,
-                name TEXT NOT NULL,
-                email TEXT NOT NULL UNIQUE,
-                contact_number TEXT NOT NULL DEFAULT '',
-                password_hash TEXT NOT NULL,
-                created_at TIMESTAMPTZ DEFAULT NOW()
-            )
-            """
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            skin_type TEXT NOT NULL,
+            category TEXT,
+            description TEXT
         )
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS products (
-                id BIGSERIAL PRIMARY KEY,
-                name TEXT NOT NULL,
-                skin_type TEXT NOT NULL,
-                category TEXT,
-                description TEXT
-            )
-            """
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER REFERENCES users(id),
+            skin_type TEXT NOT NULL,
+            confidence REAL,
+            image_path TEXT,
+            gradcam_image_path TEXT,
+            model_version TEXT,
+            class_probabilities_json TEXT,
+            is_low_confidence INTEGER NOT NULL DEFAULT 0,
+            inference_ms REAL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS results (
-                id BIGSERIAL PRIMARY KEY,
-                user_id BIGINT REFERENCES users(id),
-                skin_type TEXT NOT NULL,
-                confidence DOUBLE PRECISION,
-                image_path TEXT,
-                gradcam_image_path TEXT,
-                model_version TEXT,
-                class_probabilities_json TEXT,
-                is_low_confidence BOOLEAN NOT NULL DEFAULT FALSE,
-                inference_ms DOUBLE PRECISION,
-                created_at TIMESTAMPTZ DEFAULT NOW()
-            )
-            """
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE,
+            contact_number TEXT NOT NULL DEFAULT '',
+            password_hash TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-
+        """
+    )
     _ensure_users_schema(conn)
     _ensure_results_schema(conn)
     conn.commit()

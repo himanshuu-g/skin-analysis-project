@@ -19,7 +19,7 @@ The app predicts facial skin type (`dry`, `normal`, `oily`), generates Grad-CAM 
 - Backend: Flask, Gunicorn
 - ML: TensorFlow/Keras, OpenCV, NumPy, scikit-learn
 - Image processing: Pillow, OpenCV, MediaPipe
-- Database: PostgreSQL (`DATABASE_URL`)
+- Database: SQLite (`database/skin_care.db`)
 - Frontend: Jinja templates + JavaScript + CSS
 
 ## Project Structure
@@ -73,8 +73,6 @@ pip install -r requirements.txt
 $env:SECRET_KEY = "replace-with-a-long-random-secret"
 $env:SESSION_COOKIE_SECURE = "0"
 $env:FLASK_DEBUG = "0"
-$env:DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/skin_care"
-$env:DB_SSLMODE = "prefer"
 ```
 
 4. Run the app
@@ -90,8 +88,6 @@ Open: `http://127.0.0.1:5000`
 - `SECRET_KEY`: strongly recommended; if missing, app falls back to insecure dev key
 - `SESSION_COOKIE_SECURE`: set `1` for HTTPS production, `0` for local dev
 - `FLASK_DEBUG`: optional debug toggle
-- `DATABASE_URL`: PostgreSQL connection string (required for runtime DB access)
-- `DB_SSLMODE`: optional psycopg2 SSL mode override (for example: `require`, `prefer`)
 
 ## API Endpoints
 

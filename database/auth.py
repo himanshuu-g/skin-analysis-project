@@ -9,7 +9,7 @@ def get_user_by_email(email):
             """
             SELECT id, name, email, contact_number, password_hash
             FROM users
-            WHERE email = %s
+            WHERE email = ?
             """,
             (email.lower().strip(),),
         )
@@ -26,7 +26,7 @@ def get_user_by_id(user_id):
             """
             SELECT id, name, email, contact_number, password_hash, created_at
             FROM users
-            WHERE id = %s
+            WHERE id = ?
             """,
             (user_id,),
         )
@@ -42,13 +42,11 @@ def create_user(name, email, contact_number, password_hash):
         cursor.execute(
             """
             INSERT INTO users (name, email, contact_number, password_hash)
-            VALUES (%s, %s, %s, %s)
-            RETURNING id
+            VALUES (?, ?, ?, ?)
             """,
             (name.strip(), email.lower().strip(), contact_number.strip(), password_hash),
         )
-        row = cursor.fetchone()
         conn.commit()
-        return row["id"]
+        return cursor.lastrowid
     finally:
         conn.close()

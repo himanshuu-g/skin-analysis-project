@@ -5,7 +5,7 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from hmac import compare_digest
-from psycopg2 import IntegrityError
+from sqlite3 import IntegrityError
 from uuid import uuid4
 
 from flask import Flask, jsonify, redirect, render_template, request, session, url_for
@@ -287,7 +287,7 @@ def _build_dashboard_stats(user_id):
             """
             SELECT confidence, created_at, skin_type, class_probabilities_json
             FROM results
-            WHERE user_id = %s
+            WHERE user_id = ?
             ORDER BY id DESC
             """,
             (int(user_id),),
@@ -1031,4 +1031,3 @@ def api_analyze():
 
 if __name__ == "__main__":
     app.run(debug=os.environ.get("FLASK_DEBUG", "0") == "1")
-
