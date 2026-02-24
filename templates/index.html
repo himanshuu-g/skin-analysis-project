@@ -260,9 +260,9 @@
                             <div class="upload-area" id="uploadArea">
                                 <img
                                     class="scan-sample-image"
-                                    src="{{ url_for('static', filename='uploads/IMAGE 1 SCP.jpg') }}"
+                                    src="{{ url_for('static', filename='images/home/hero.jpg') }}"
                                     alt="Face scan preview"
-                                    onerror="this.onerror=null;this.src='{{ url_for('static', filename='uploads/dry-skin-face1.jpg') }}';"
+                                    onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/home/dashboard-default.jpg') }}';"
                                 >
                                 <div class="upload-hint">
                                     <p>Drop image here or click to upload</p>
@@ -418,7 +418,7 @@
                             <div
                                 class="history-list"
                                 id="historyList"
-                                data-fallback-image="{{ url_for('static', filename='uploads/IMAGE 2 SCP.jpg') }}"
+                                data-fallback-image="{{ url_for('static', filename='images/home/dashboard-default.jpg') }}"
                             >
                                 {% if history_items %}
                                 {% for item in history_items %}
@@ -430,7 +430,7 @@
                                         <img
                                             src="{{ item.image_url }}"
                                             alt="Scan from {{ item.display_date }}"
-                                            onerror="this.onerror=null;this.src='{{ url_for('static', filename='uploads/IMAGE 2 SCP.jpg') }}';"
+                                            onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/home/dashboard-default.jpg') }}';"
                                         >
                                         <div class="history-copy">
                                             <div class="history-row-top">

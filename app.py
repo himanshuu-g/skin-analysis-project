@@ -479,7 +479,9 @@ def _build_dashboard_history_items(user_id, limit=MAX_RESULTS_LIMIT):
                     trend_class = "is-down"
 
         summary_text = f"{skin_type_label} skin profile - confidence {confidence_label}%"
-        image_url = row.get("image_url") or url_for("static", filename="uploads/IMAGE 2 SCP.jpg")
+        image_url = row.get("image_url") or url_for(
+            "static", filename="images/home/dashboard-default.jpg"
+        )
 
         history_items.append(
             {
