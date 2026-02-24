@@ -1,16 +1,4 @@
-import sqlite3
-import os
-
-# -----------------------------
-# Database path
-# -----------------------------
-DB_PATH = os.path.join(os.path.dirname(__file__), "skin_care.db")
-
-# -----------------------------
-# Connect to DB
-# -----------------------------
-conn = sqlite3.connect(DB_PATH)
-cursor = conn.cursor()
+from database.db import get_db
 
 # -----------------------------
 # Product data
@@ -32,15 +20,15 @@ products = [
     ("The Ordinary Niacinamide", "Serum", "normal"),
 ]
 
-# -----------------------------
-# Insert products
-# -----------------------------
+conn = get_db()
+cursor = conn.cursor()
+
 cursor.executemany(
-    "INSERT INTO products (name, category, skin_type) VALUES (?, ?, ?)",
-    products
+    "INSERT INTO products (name, category, skin_type) VALUES (%s, %s, %s)",
+    products,
 )
 
 conn.commit()
 conn.close()
 
-print("✅ Products inserted successfully!")
+print("Products inserted successfully!")

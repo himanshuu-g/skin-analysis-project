@@ -1,26 +1,27 @@
-import sqlite3
-
-from database.db import DB_PATH
+from database.db import get_db
 
 
 def recommend_products(skin_type):
     products = []
+    conn = None
 
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db()
         cursor = conn.cursor()
 
         cursor.execute(
-            "SELECT name, category FROM products WHERE skin_type = ?",
+            "SELECT name, category FROM products WHERE skin_type = %s",
             (skin_type,),
         )
         rows = cursor.fetchall()
-        conn.close()
 
-        for name, category in rows:
-            products.append(f"{name} ({category})")
+        for row in rows:
+            products.append(f"{row['name']} ({row['category']})")
 
     except Exception as err:
         print(f"[WARN] Product recommendation error: {err}")
+    finally:
+        if conn is not None:
+            conn.close()
 
     return products

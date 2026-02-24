@@ -36,7 +36,8 @@ def save_result(
                 inference_ms,
                 created_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
             """,
             (
                 user_id,
@@ -46,15 +47,16 @@ def save_result(
                 gradcam_image_path,
                 model_version,
                 class_probabilities_json,
-                1 if is_low_confidence else 0,
+                bool(is_low_confidence),
                 inference_ms,
                 created_at,
             ),
         )
 
+        row = cursor.fetchone()
         conn.commit()
         print("[INFO] Result saved to DB")
-        return cursor.lastrowid
+        return row["id"]
 
     except Exception as err:
         print(f"[WARN] Result not saved: {err}")
@@ -82,9 +84,9 @@ def get_results_for_user(user_id, limit=20):
                 inference_ms,
                 created_at
             FROM results
-            WHERE user_id = ?
+            WHERE user_id = %s
             ORDER BY id DESC
-            LIMIT ?
+            LIMIT %s
             """,
             (user_id, int(limit)),
         )
@@ -141,7 +143,7 @@ def get_result_for_user(user_id, result_id):
                 inference_ms,
                 created_at
             FROM results
-            WHERE id = ? AND user_id = ?
+            WHERE id = %s AND user_id = %s
             LIMIT 1
             """,
             (int(result_id), int(user_id)),
@@ -185,7 +187,7 @@ def delete_result_for_user(user_id, result_id):
             """
             SELECT image_path, gradcam_image_path
             FROM results
-            WHERE id = ? AND user_id = ?
+            WHERE id = %s AND user_id = %s
             LIMIT 1
             """,
             (int(result_id), int(user_id)),
@@ -202,7 +204,7 @@ def delete_result_for_user(user_id, result_id):
         cursor.execute(
             """
             DELETE FROM results
-            WHERE id = ? AND user_id = ?
+            WHERE id = %s AND user_id = %s
             """,
             (int(result_id), int(user_id)),
         )
