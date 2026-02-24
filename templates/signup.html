@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signup - SkinAnalysis AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body class="auth-page">
+    <div class="page-shell auth-shell">
+        <header class="app-header">
+            <div class="brand">SkinAnalysis AI</div>
+            <nav class="app-nav">
+                <a class="nav-link" href="{{ url_for('home') }}">Home</a>
+                <a class="btn btn-light" href="{{ url_for('login') }}">Login</a>
+            </nav>
+        </header>
+
+        <main class="auth-main">
+            <div class="auth-wrapper">
+                <div class="card auth-card">
+                    <h1>Create Account</h1>
+                    <p class="auth-subtitle">Sign up first, then continue to the analyzer.</p>
+
+                    {% if error %}
+                    <div class="auth-error">{{ error }}</div>
+                    {% endif %}
+
+                    <form method="POST" action="{{ url_for('signup') }}" class="auth-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <label for="name">Full Name</label>
+                        <input id="name" type="text" name="name" value="{{ form_name }}" required>
+
+                        <label for="email">Email</label>
+                        <input id="email" type="email" name="email" value="{{ form_email }}" required>
+
+                        <label for="contact_number">Contact Number</label>
+                        <input
+                            id="contact_number"
+                            type="tel"
+                            name="contact_number"
+                            value="{{ form_contact_number }}"
+                            placeholder="+919876543210"
+                            inputmode="tel"
+                            required
+                        >
+
+                        <label for="password">Password</label>
+                        <input id="password" type="password" name="password" minlength="8" required>
+
+                        <label for="confirm_password">Confirm Password</label>
+                        <input id="confirm_password" type="password" name="confirm_password" minlength="8" required>
+
+                        <button class="btn btn-primary" type="submit">Signup</button>
+                    </form>
+
+                    <p class="auth-footer">
+                        Already have an account?
+                        <a href="{{ url_for('login') }}">Login</a>
+                    </p>
+                    <p class="auth-footer">
+                        <a href="{{ url_for('home') }}">Back to home</a>
+                    </p>
+                </div>
+            </div>
+        </main>
+
+        {% include "_footer.html" %}
+    </div>
+
+    <script>
+        (() => {
+            const form = document.querySelector(".auth-form");
+            if (!form) return;
+
+            form.addEventListener("submit", () => {
+                try {
+                    window.sessionStorage.setItem("skinanalysis_guide_pending", "1");
+                } catch (_err) {
+                    return;
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

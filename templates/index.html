@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkinAnalysis AI Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/analyzer.css') }}">
+</head>
+<body class="analyzer-page" data-guide-trigger="{{ '1' if show_onboarding else '0' }}">
+    {% if auth_notice %}
+    <div class="auth-status-toast" id="authStatusToast" role="status" aria-live="polite">
+        <span class="auth-status-toast-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+                <path d="M20 7L10.2 17 4 11.3"></path>
+            </svg>
+        </span>
+        <span class="auth-status-toast-text">{{ auth_notice }}</span>
+        <button type="button" class="auth-status-toast-close" id="authStatusToastClose" aria-label="Dismiss notification">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 6l12 12"></path>
+                <path d="M18 6L6 18"></path>
+            </svg>
+        </button>
+    </div>
+    {% endif %}
+
+    <div class="dashboard-shell">
+        <aside class="dashboard-sidebar">
+            <div class="sidebar-top">
+                <a class="sidebar-brand" href="{{ url_for('analyzer') }}">
+                    <span class="sidebar-brand-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M4.3 13.2c0-5 4-9 9-9h5.5v5.5c0 5-4 9-9 9H4.3z"></path>
+                            <path d="M6.3 16.5c3.7-.2 6.8-2.1 9.1-5.3"></path>
+                        </svg>
+                    </span>
+                    <span>SkinAnalysis AI</span>
+                </a>
+                <button class="sidebar-collapse-btn" type="button" aria-label="Collapse menu">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M14.8 6.2L9 12l5.8 5.8"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav" aria-label="Dashboard menu">
+                <a
+                    class="sidebar-link is-active"
+                    id="sidebarDashboardLink"
+                    href="#dashboardHomeView"
+                    data-dashboard-view="home"
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="3" y="3" width="7" height="7" rx="1.4"></rect>
+                        <rect x="14" y="3" width="7" height="7" rx="1.4"></rect>
+                        <rect x="3" y="14" width="7" height="7" rx="1.4"></rect>
+                        <rect x="14" y="14" width="7" height="7" rx="1.4"></rect>
+                    </svg>
+                    Dashboard
+                </a>
+                <a class="sidebar-link" href="#uploadForm" data-dashboard-view="home">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 5v14"></path>
+                        <path d="M5 12h14"></path>
+                        <path d="M20 16.5v2a1.5 1.5 0 0 1-1.5 1.5h-2"></path>
+                        <path d="M4 7.5v-2A1.5 1.5 0 0 1 5.5 4h2"></path>
+                    </svg>
+                    New Scan
+                </a>
+                <a
+                    class="sidebar-link"
+                    id="sidebarHistoryLink"
+                    href="#dashboard-history-view"
+                    data-dashboard-view="history"
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M4 12a8 8 0 1 0 2.3-5.7"></path>
+                        <path d="M4 4v4h4"></path>
+                        <path d="M12 8v4l3 2"></path>
+                    </svg>
+                    History
+                </a>
+                <a class="sidebar-link" href="#">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M14.9 4.4a3 3 0 1 1 4.2 4.3l-1.2 1.2a6 6 0 1 1-8.5 8.5l-.8-.9"></path>
+                        <path d="M9.1 19.6a3 3 0 0 1-4.2-4.3l1.2-1.2a6 6 0 1 1 8.5-8.5l.8.9"></path>
+                    </svg>
+                    My Routine
+                </a>
+                <a class="sidebar-link" href="#">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="4.5" y="5" width="15" height="15" rx="2"></rect>
+                        <path d="M8 3.5v3"></path>
+                        <path d="M16 3.5v3"></path>
+                        <path d="M4.5 10h15"></path>
+                    </svg>
+                    Schedule
+                </a>
+                <a
+                    class="sidebar-link"
+                    id="sidebarSettingsLink"
+                    href="#dashboard-settings"
+                    data-dashboard-view="settings"
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.3 1.3 0 0 0 .3 1.4l.1.1a1.6 1.6 0 0 1 0 2.3 1.6 1.6 0 0 1-2.3 0l-.1-.1a1.3 1.3 0 0 0-1.4-.3 1.3 1.3 0 0 0-.8 1.2v.2a1.6 1.6 0 1 1-3.2 0v-.2a1.3 1.3 0 0 0-.8-1.2 1.3 1.3 0 0 0-1.4.3l-.1.1a1.6 1.6 0 0 1-2.3 0 1.6 1.6 0 0 1 0-2.3l.1-.1a1.3 1.3 0 0 0 .3-1.4 1.3 1.3 0 0 0-1.2-.8h-.2a1.6 1.6 0 1 1 0-3.2h.2a1.3 1.3 0 0 0 1.2-.8 1.3 1.3 0 0 0-.3-1.4l-.1-.1a1.6 1.6 0 0 1 0-2.3 1.6 1.6 0 0 1 2.3 0l.1.1a1.3 1.3 0 0 0 1.4.3h.1a1.3 1.3 0 0 0 .8-1.2v-.2a1.6 1.6 0 1 1 3.2 0v.2a1.3 1.3 0 0 0 .8 1.2h.1a1.3 1.3 0 0 0 1.4-.3l.1-.1a1.6 1.6 0 0 1 2.3 0 1.6 1.6 0 0 1 0 2.3l-.1.1a1.3 1.3 0 0 0-.3 1.4v.1a1.3 1.3 0 0 0 1.2.8h.2a1.6 1.6 0 1 1 0 3.2h-.2a1.3 1.3 0 0 0-1.2.8z"></path>
+                    </svg>
+                    Settings
+                </a>
+            </nav>
+
+            <div class="sidebar-profile">
+                <a class="sidebar-profile-main" href="#dashboard-settings" data-dashboard-view="settings">
+                    <span class="sidebar-avatar">{{ auth_user_initials }}</span>
+                    <span class="sidebar-profile-copy">
+                        <strong>{{ auth_user_name }}</strong>
+                        <small>Premium Plan</small>
+                    </span>
+                </a>
+                <a class="sidebar-profile-action" href="{{ url_for('logout') }}" aria-label="Log out">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M14 8l4 4-4 4"></path>
+                        <path d="M18 12H9"></path>
+                        <path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"></path>
+                    </svg>
+                </a>
+            </div>
+        </aside>
+
+        <section class="dashboard-main">
+            <header class="dashboard-header">
+                <div class="dashboard-header-copy">
+                    <h1 class="dashboard-greeting">{{ auth_greeting }}, {{ auth_user_first_name }}</h1>
+                    <p class="dashboard-date">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <rect x="4.5" y="5" width="15" height="15" rx="2"></rect>
+                            <path d="M8 3.5v3"></path>
+                            <path d="M16 3.5v3"></path>
+                            <path d="M4.5 10h15"></path>
+                        </svg>
+                        <span>{{ auth_date_label }}</span>
+                    </p>
+                </div>
+
+                <div class="dashboard-header-tools">
+                    <label class="dashboard-search" aria-label="Search">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <circle cx="11" cy="11" r="6"></circle>
+                            <path d="M20 20l-4.2-4.2"></path>
+                        </svg>
+                        <input type="search" placeholder="Search..." autocomplete="off">
+                    </label>
+
+                    <a class="dashboard-bell" href="#dashboard-settings" data-dashboard-view="settings" aria-label="Notifications">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M15 18H5a1 1 0 0 1-.8-1.6L5 15v-4.5a6 6 0 1 1 12 0V15l.8 1.4A1 1 0 0 1 17 18h-2"></path>
+                            <path d="M9 19a3 3 0 0 0 6 0"></path>
+                        </svg>
+                        <span class="dashboard-bell-badge">{{ auth_notification_count }}</span>
+                    </a>
+
+                    <a class="dashboard-avatar" href="#dashboard-settings" data-dashboard-view="settings" aria-label="User profile">
+                        {{ auth_user_initials }}
+                    </a>
+                </div>
+            </header>
+
+            <main class="dashboard-content">
+                <section class="dashboard-view is-active" id="dashboardHomeView">
+                <section class="dashboard-stats" aria-label="Summary cards">
+                    <article class="dashboard-card stat-card">
+                        <p>Total Scans</p>
+                        <h2 id="statTotalScans">{{ dashboard_stats.total_scans }}</h2>
+                        <small id="statScansThisMonth">This month: {{ dashboard_stats.scans_this_month }}</small>
+                    </article>
+                    <article class="dashboard-card stat-card">
+                        <p>Avg Score</p>
+                        <h2 id="statAvgScore">{{ dashboard_stats.avg_score }}</h2>
+                        <small id="statAvgScoreChange">{{ dashboard_stats.avg_score_change_text }}</small>
+                    </article>
+                    <article class="dashboard-card stat-card">
+                        <p>Total Days</p>
+                        <h2 id="statTotalDays">{{ dashboard_stats.active_days }} Days</h2>
+                        <small id="statActiveDaysSubtext">{{ dashboard_stats.active_days_subtext }}</small>
+                    </article>
+                    <article class="dashboard-card stat-card">
+                        <p>Next Checkup</p>
+                        <h2>{{ dashboard_stats.next_checkup_date }}</h2>
+                        <small>In {{ dashboard_stats.next_checkup_in_days }} days</small>
+                    </article>
+                </section>
+
+                <section class="dashboard-grid">
+                    <article class="dashboard-card score-card">
+                        <div class="card-head">
+                            <div>
+                                <p class="card-kicker">Skin Score</p>
+                                <h3>Overall Health</h3>
+                            </div>
+                            <span class="chip chip-positive" id="overallHealthSkinTypeLabel">{{ dashboard_stats.overall_health_skin_type_label }}</span>
+                        </div>
+
+                        <div class="score-ring-wrap">
+                            <div class="score-ring" id="overallHealthScoreRing" style="--score:{{ dashboard_stats.overall_health_score }};">
+                                <div class="score-ring-center">
+                                    <strong id="overallHealthScoreLabel">{{ dashboard_stats.overall_health_score_label }}</strong>
+                                    <span>out of 100</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="score-breakdown">
+                            <article class="score-box">
+                                <span class="score-dot"></span>
+                                <strong id="drySignal">{{ dashboard_stats.dry_signal }}%</strong>
+                                <small>Dry Signal</small>
+                            </article>
+                            <article class="score-box">
+                                <span class="score-dot is-warn"></span>
+                                <strong id="normalSignal">{{ dashboard_stats.normal_signal }}%</strong>
+                                <small>Normal Signal</small>
+                            </article>
+                            <article class="score-box">
+                                <span class="score-dot is-alt"></span>
+                                <strong id="oilySignal">{{ dashboard_stats.oily_signal }}%</strong>
+                                <small>Oily Signal</small>
+                            </article>
+                        </div>
+                    </article>
+
+                    <article class="dashboard-card scan-card">
+                        <div class="card-head">
+                            <div>
+                                <p class="card-kicker">Quick Scan</p>
+                                <h3>New Analysis</h3>
+                            </div>
+                            <span class="scan-icon-badge">
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <rect x="4" y="7" width="16" height="12" rx="2"></rect>
+                                    <path d="M9 7l1.4-2h3.2L15 7"></path>
+                                    <circle cx="12" cy="13" r="3"></circle>
+                                </svg>
+                            </span>
+                        </div>
+
+                        <form
+                            id="uploadForm"
+                            action="{{ url_for('analyze') }}"
+                            method="POST"
+                            enctype="multipart/form-data"
+                        >
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div id="uploadError" class="upload-error" role="alert"></div>
+
+                            <div class="upload-area" id="uploadArea">
+                                <img
+                                    class="scan-sample-image"
+                                    src="{{ url_for('static', filename='uploads/IMAGE 1 SCP.jpg') }}"
+                                    alt="Face scan preview"
+                                    onerror="this.onerror=null;this.src='{{ url_for('static', filename='uploads/dry-skin-face1.jpg') }}';"
+                                >
+                                <div class="upload-hint">
+                                    <p>Drop image here or click to upload</p>
+                                    <button type="button" id="choosePhotoBtn">Choose Photo</button>
+                                </div>
+                                <input type="file" id="imageInput" name="image" accept="image/*" required>
+                            </div>
+
+                            <div class="preview-container" id="previewContainer">
+                                <img id="previewImage" class="preview-image" alt="Preview">
+                                <button type="button" class="remove-btn" id="removeBtn">Remove photo</button>
+                            </div>
+
+                            <div class="scan-actions">
+                                <button
+                                    type="submit"
+                                    id="analyzeBtn"
+                                    class="scan-primary"
+                                    data-default-label="Start Analysis"
+                                >
+                                    Start Analysis
+                                </button>
+                                <button type="button" id="retakeBtn" class="scan-secondary">Retake</button>
+                            </div>
+
+                            <div id="progressWrap" class="progress-wrap" aria-live="polite">
+                                <div class="progress-track">
+                                    <div id="progressBar" class="progress-bar"></div>
+                                </div>
+                                <p id="progressText" class="progress-text">Uploading: 0%</p>
+                            </div>
+
+                            <div id="loadingDiv" class="inline-loading">
+                                <div class="spinner spinner-small"></div>
+                                <p>Analyzing your skin... Please wait</p>
+                            </div>
+                        </form>
+                    </article>
+
+                    <article class="dashboard-card routine-card">
+                        <div class="card-head">
+                            <div>
+                                <p class="card-kicker">Today's Routine</p>
+                                <h3>Skincare Steps</h3>
+                                {% if dashboard_stats.routine_has_data %}
+                                <p class="routine-skin-type">{{ dashboard_stats.routine_skin_type_label }} skin routine</p>
+                                {% endif %}
+                            </div>
+                            <span class="chip">{{ dashboard_stats.routine_badge }}</span>
+                        </div>
+
+                        {% if dashboard_stats.routine_has_data %}
+                        <div class="routine-tabs" role="tablist" aria-label="Routine time">
+                            <button type="button" class="routine-tab is-active" data-routine-target="morning">Morning</button>
+                            <button type="button" class="routine-tab" data-routine-target="evening">Evening</button>
+                        </div>
+
+                        <ul class="routine-list is-active" data-routine-list="morning">
+                            {% for step in dashboard_stats.routine_morning_steps %}
+                            <li>
+                                <span class="step-index">{{ loop.index }}</span>
+                                <span class="step-label">{{ step.label }}</span>
+                                <span class="step-time">{{ step.time_hint }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+
+                        <ul class="routine-list" data-routine-list="evening">
+                            {% for step in dashboard_stats.routine_evening_steps %}
+                            <li>
+                                <span class="step-index">{{ loop.index }}</span>
+                                <span class="step-label">{{ step.label }}</span>
+                                <span class="step-time">{{ step.time_hint }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <div class="routine-empty">
+                            <p>{{ dashboard_stats.routine_empty_message }}</p>
+                        </div>
+                        {% endif %}
+                    </article>
+                </section>
+
+                <section class="dashboard-bottom">
+                    <article class="dashboard-card analysis-card" id="analysisCard">
+                        <section class="analysis-result" id="analysisResult" hidden></section>
+                    </article>
+                    <article class="dashboard-card metrics-card">
+                        <p class="card-kicker">Detailed</p>
+                        <h3>Skin Metrics</h3>
+                        <div class="metric-row">
+                            <span>Hydration Level</span>
+                            <strong>87%</strong>
+                        </div>
+                        <div class="metric-row">
+                            <span>Elasticity</span>
+                            <strong>79%</strong>
+                        </div>
+                        <div class="metric-row">
+                            <span>Sensitivity</span>
+                            <strong>Low</strong>
+                        </div>
+                    </article>
+                </section>
+                </section>
+
+                <section class="dashboard-view" id="dashboardHistoryView" hidden>
+                    <section class="dashboard-card history-page-card" id="dashboard-history-view">
+                        <div class="history-page-head">
+                            <div>
+                                <p class="card-kicker">History</p>
+                                <h3>Scan Records</h3>
+                                <p class="history-page-subtitle">Track your skin health journey over time.</p>
+                            </div>
+                            <span class="history-filter-pill">
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M4 6h16"></path>
+                                    <path d="M7 12h10"></path>
+                                    <path d="M10 18h4"></path>
+                                </svg>
+                                All Scans
+                            </span>
+                        </div>
+
+                        <section class="history-overview-grid" aria-label="History overview">
+                            <article class="dashboard-card history-overview-card">
+                                <p>Total Scans</p>
+                                <h4>{{ history_overview.total_scans }}</h4>
+                                <small>{{ history_overview.since_label }}</small>
+                            </article>
+                            <article class="dashboard-card history-overview-card">
+                                <p>Average Score</p>
+                                <h4>{{ history_overview.average_score }}</h4>
+                                <small>{{ history_overview.average_score_note }}</small>
+                            </article>
+                            <article class="dashboard-card history-overview-card">
+                                <p>Best Score</p>
+                                <h4>{{ history_overview.best_score }}</h4>
+                                <small>{{ history_overview.best_score_date }}</small>
+                            </article>
+                        </section>
+
+                        <section class="history-page-records">
+                            <div class="history-page-records-head">
+                                <div>
+                                    <p class="card-kicker">All Scans</p>
+                                    <h4>Scan Records</h4>
+                                </div>
+                                <small>{{ history_overview.total_scans }} scans</small>
+                            </div>
+
+                            <div
+                                class="history-list"
+                                id="historyList"
+                                data-fallback-image="{{ url_for('static', filename='uploads/IMAGE 2 SCP.jpg') }}"
+                            >
+                                {% if history_items %}
+                                {% for item in history_items %}
+                                <article class="history-row history-page-row" data-score="{{ item.score }}">
+                                    <a
+                                        class="history-item"
+                                        href="{{ url_for('history_detail', result_id=item.id) }}"
+                                    >
+                                        <img
+                                            src="{{ item.image_url }}"
+                                            alt="Scan from {{ item.display_date }}"
+                                            onerror="this.onerror=null;this.src='{{ url_for('static', filename='uploads/IMAGE 2 SCP.jpg') }}';"
+                                        >
+                                        <div class="history-copy">
+                                            <div class="history-row-top">
+                                                <strong>{{ item.display_date }}</strong>
+                                                <span class="history-status-chip {{ item.status_class }}">{{ item.status_label }}</span>
+                                            </div>
+                                            <p>{{ item.summary_text }}</p>
+                                        </div>
+                                    </a>
+                                    <div class="history-row-actions">
+                                        <div class="history-score-stack">
+                                            <span class="history-score">{{ item.score }}</span>
+                                            <small class="history-score-trend {{ item.trend_class }}">{{ item.trend_text }}</small>
+                                        </div>
+                                        <a
+                                            class="history-open-btn"
+                                            href="{{ url_for('history_detail', result_id=item.id) }}"
+                                            aria-label="Open scan details"
+                                        >
+                                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                <path d="M8 16L16 8"></path>
+                                                <path d="M9 8h7v7"></path>
+                                            </svg>
+                                        </a>
+                                        <button
+                                            type="button"
+                                            class="history-delete-btn"
+                                            data-history-id="{{ item.id }}"
+                                            aria-label="Delete this history entry"
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
+                                </article>
+                                {% endfor %}
+                                {% else %}
+                                <div class="history-empty">No scan history yet. Start your first analysis.</div>
+                                {% endif %}
+                            </div>
+                        </section>
+                    </section>
+                </section>
+
+                <section class="dashboard-view" id="dashboardSettingsView" hidden>
+                    <section class="dashboard-card settings-inline-card" id="dashboard-settings">
+                        <div class="settings-inline-head">
+                            <div>
+                                <p class="card-kicker">Account</p>
+                                <h3>Settings</h3>
+                                <p class="settings-inline-subtitle">Manage your profile and preferences</p>
+                            </div>
+                            <span class="chip">Profile</span>
+                        </div>
+
+                        <div class="settings-inline-layout">
+                            <aside class="settings-inline-nav" aria-label="Settings sections">
+                                <button type="button" class="settings-inline-tab is-active">Profile</button>
+                                <button type="button" class="settings-inline-tab">Skin Profile</button>
+                                <button type="button" class="settings-inline-tab">Notifications</button>
+                                <button type="button" class="settings-inline-tab">Account</button>
+                            </aside>
+
+                            <section class="settings-inline-panel">
+                                <h4>Personal Information</h4>
+                                <form class="settings-inline-form" novalidate>
+                                    <label>
+                                        <span>First Name</span>
+                                        <input type="text" value="{{ settings_first_name }}" readonly>
+                                    </label>
+                                    <label>
+                                        <span>Last Name</span>
+                                        <input type="text" value="{{ settings_last_name }}" readonly>
+                                    </label>
+                                    <label class="is-full">
+                                        <span>Email</span>
+                                        <input type="email" value="{{ settings_email }}" readonly>
+                                    </label>
+                                    <div class="settings-inline-actions">
+                                        <a class="scan-primary settings-inline-btn" href="#dashboardHomeView" data-dashboard-view="home">Back to Dashboard</a>
+                                        <a class="scan-secondary" href="{{ url_for('logout') }}">Logout</a>
+                                    </div>
+                                </form>
+                            </section>
+                        </div>
+                    </section>
+                </section>
+            </main>
+        </section>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <div class="loading-text">Analyzing your skin...</div>
+            <p class="loading-subtext">This usually takes a few seconds.</p>
+        </div>
+    </div>
+
+    <div class="confirm-modal" id="deleteConfirmModal" hidden>
+        <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="deleteConfirmTitle">
+            <h2 id="deleteConfirmTitle">Delete History Entry</h2>
+            <p id="deleteConfirmMessage">Delete this history entry?</p>
+            <div class="confirm-actions">
+                <button type="button" class="confirm-btn confirm-cancel" id="deleteConfirmCancel">Cancel</button>
+                <button type="button" class="confirm-btn confirm-delete" id="deleteConfirmAccept">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="guide-modal" id="dashboardGuideModal" hidden>
+        <div class="guide-dialog" role="dialog" aria-modal="true" aria-label="Dashboard introduction">
+            <div class="guide-progress-track" aria-hidden="true">
+                <div class="guide-progress-fill" id="guideProgressBar"></div>
+            </div>
+
+            <button type="button" class="guide-close-btn" id="guideCloseBtn" aria-label="Close introduction">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M6 6l12 12"></path>
+                    <path d="M18 6l-12 12"></path>
+                </svg>
+            </button>
+
+            <div class="guide-body">
+                <article class="guide-step is-active" data-guide-step="0">
+                    <span class="guide-badge">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M12 3.2l1.5 4 4 1.5-4 1.5-1.5 4-1.5-4-4-1.5 4-1.5z"></path>
+                            <path d="M18.5 12.8l.7 1.9 1.9.7-1.9.7-.7 1.9-.7-1.9-1.9-.7 1.9-.7z"></path>
+                        </svg>
+                        Welcome
+                    </span>
+
+                    <div class="guide-visual guide-visual-welcome" aria-hidden="true">
+                        <span class="guide-ring guide-ring-outer"></span>
+                        <span class="guide-ring guide-ring-middle"></span>
+                        <span class="guide-ring guide-ring-core">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M7 7h4"></path>
+                                <path d="M13 7h4"></path>
+                                <path d="M7 17h4"></path>
+                                <path d="M13 17h4"></path>
+                                <path d="M7 10v4"></path>
+                                <path d="M17 10v4"></path>
+                            </svg>
+                        </span>
+                    </div>
+
+                    <h2>Welcome to SkinAnalysis AI</h2>
+                    <p>
+                        Your personal AI skin assistant. Analyze your skin and get personalized
+                        guidance for better daily care.
+                    </p>
+
+                    <ul class="guide-tip-list">
+                        <li>
+                            <span class="guide-tip-mark">&#10003;</span>
+                            <span>Instant AI-powered skin analysis</span>
+                        </li>
+                        <li>
+                            <span class="guide-tip-mark">&#10003;</span>
+                            <span>Personalized skincare recommendations</span>
+                        </li>
+                        <li>
+                            <span class="guide-tip-mark">&#10003;</span>
+                            <span>Track your skin health over time</span>
+                        </li>
+                    </ul>
+                </article>
+
+                <article class="guide-step" data-guide-step="1" hidden>
+                    <span class="guide-badge">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M4.5 8.5A2.5 2.5 0 0 1 7 6h2l1.2-1.8h3.6L15 6h2a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 17 19H7a2.5 2.5 0 0 1-2.5-2.5z"></path>
+                            <circle cx="12" cy="12.5" r="2.8"></circle>
+                        </svg>
+                        Step 1
+                    </span>
+
+                    <div class="guide-visual guide-visual-photo" aria-hidden="true">
+                        <div class="guide-photo-frame">
+                            <div class="guide-photo-icon">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M4.5 8.5A2.5 2.5 0 0 1 7 6h2l1.2-1.8h3.6L15 6h2a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 17 19H7a2.5 2.5 0 0 1-2.5-2.5z"></path>
+                                    <circle cx="12" cy="12.5" r="2.8"></circle>
+                                </svg>
+                            </div>
+                            <div class="guide-photo-dots">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h2>How to Take the Perfect Photo</h2>
+                    <p>
+                        For accurate results, use a clear face photo in natural light and follow
+                        these quick guidelines.
+                    </p>
+
+                    <ul class="guide-tip-list is-numbered">
+                        <li>
+                            <span class="guide-tip-index">1</span>
+                            <span>Clean the camera lens before capture</span>
+                        </li>
+                        <li>
+                            <span class="guide-tip-index">2</span>
+                            <span>Tie hair back to keep your full face visible</span>
+                        </li>
+                        <li>
+                            <span class="guide-tip-index">3</span>
+                            <span>Wash your face and avoid heavy makeup</span>
+                        </li>
+                        <li>
+                            <span class="guide-tip-index">4</span>
+                            <span>Use neutral light and avoid filters</span>
+                        </li>
+                    </ul>
+                </article>
+
+                <article class="guide-step" data-guide-step="2" hidden>
+                    <span class="guide-badge">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M7 7h4"></path>
+                            <path d="M13 7h4"></path>
+                            <path d="M7 17h4"></path>
+                            <path d="M13 17h4"></path>
+                            <path d="M7 10v4"></path>
+                            <path d="M17 10v4"></path>
+                        </svg>
+                        Step 2
+                    </span>
+
+                    <div class="guide-visual guide-visual-upload" aria-hidden="true">
+                        <div class="guide-upload-card">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M4.5 8.5A2.5 2.5 0 0 1 7 6h2l1.2-1.8h3.6L15 6h2a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 17 19H7a2.5 2.5 0 0 1-2.5-2.5z"></path>
+                                <circle cx="12" cy="12.5" r="2.8"></circle>
+                            </svg>
+                        </div>
+                        <span class="guide-upload-arrow">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M9 6l6 6-6 6"></path>
+                            </svg>
+                        </span>
+                        <div class="guide-upload-card is-result">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M12 3.2l1.5 4 4 1.5-4 1.5-1.5 4-1.5-4-4-1.5 4-1.5z"></path>
+                            </svg>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+
+                    <h2>Upload and Analyze</h2>
+                    <p>
+                        Upload your photo or take one with your webcam. The model analyzes texture,
+                        pores, and oil patterns in seconds.
+                    </p>
+
+                    <ul class="guide-tip-list">
+                        <li>
+                            <span class="guide-tip-mark">&#10003;</span>
+                            <span>Drag and drop or click to upload your photo</span>
+                        </li>
+                        <li>
+                            <span class="guide-tip-mark">&#10003;</span>
+                            <span>Analysis usually completes in under 10 seconds</span>
+                        </li>
+                        <li>
+                            <span class="guide-tip-mark">&#10003;</span>
+                            <span>Review your skin type with confidence score</span>
+                        </li>
+                    </ul>
+                </article>
+
+                <article class="guide-step" data-guide-step="3" hidden>
+                    <span class="guide-badge">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M7 4h7l4 4v12H7z"></path>
+                            <path d="M14 4v4h4"></path>
+                            <path d="M10 12h5"></path>
+                            <path d="M10 16h5"></path>
+                        </svg>
+                        Step 3
+                    </span>
+
+                    <div class="guide-visual guide-visual-report" aria-hidden="true">
+                        <div class="guide-report-card">
+                            <span class="guide-report-dot"></span>
+                            <span class="guide-report-line is-wide"></span>
+                            <span class="guide-report-line"></span>
+                            <div class="guide-report-row">
+                                <span class="guide-report-pill is-accent"></span>
+                                <span class="guide-report-pill"></span>
+                                <span class="guide-report-pill"></span>
+                            </div>
+                            <span class="guide-report-line is-full"></span>
+                            <span class="guide-report-line is-mid"></span>
+                        </div>
+                    </div>
+
+                    <h2>Get Your Prescription Report</h2>
+                    <p>
+                        Receive a detailed report with skin type, confidence insights, and a daily
+                        skincare routine you can follow.
+                    </p>
+
+                    <ul class="guide-tip-list">
+                        <li>
+                            <span class="guide-tip-mark">&#10003;</span>
+                            <span>Download or print your report as PDF</span>
+                        </li>
+                        <li>
+                            <span class="guide-tip-mark">&#10003;</span>
+                            <span>Personalized morning and evening routines</span>
+                        </li>
+                        <li>
+                            <span class="guide-tip-mark">&#10003;</span>
+                            <span>Track progress across multiple scans</span>
+                        </li>
+                    </ul>
+                </article>
+            </div>
+
+            <div class="guide-footer">
+                <div class="guide-dots" role="tablist" aria-label="Introduction steps">
+                    <button type="button" class="guide-dot is-active" data-guide-dot="0" role="tab" aria-selected="true" aria-label="Go to step 1"></button>
+                    <button type="button" class="guide-dot" data-guide-dot="1" role="tab" aria-selected="false" aria-label="Go to step 2"></button>
+                    <button type="button" class="guide-dot" data-guide-dot="2" role="tab" aria-selected="false" aria-label="Go to step 3"></button>
+                    <button type="button" class="guide-dot" data-guide-dot="3" role="tab" aria-selected="false" aria-label="Go to step 4"></button>
+                </div>
+
+                <div class="guide-actions">
+                    <button type="button" class="guide-back-btn" id="guideBackBtn" hidden>
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M15 6l-6 6 6 6"></path>
+                        </svg>
+                        Back
+                    </button>
+                    <button type="button" class="guide-next-btn" id="guideNextBtn">
+                        <span id="guideNextLabel">Next</span>
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M9 6l6 6-6 6"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <button type="button" class="guide-skip-btn" id="guideSkipBtn">Skip introduction</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (() => {
+            const routineTabs = Array.from(document.querySelectorAll(".routine-tab"));
+            const routineLists = Array.from(document.querySelectorAll("[data-routine-list]"));
+            const retakeBtn = document.getElementById("retakeBtn");
+            const removeBtn = document.getElementById("removeBtn");
+
+            routineTabs.forEach((tab) => {
+                tab.addEventListener("click", () => {
+                    const target = tab.dataset.routineTarget;
+                    routineTabs.forEach((item) => item.classList.toggle("is-active", item === tab));
+                    routineLists.forEach((list) => {
+                        list.classList.toggle("is-active", list.dataset.routineList === target);
+                    });
+                });
+            });
+
+            if (retakeBtn && removeBtn) {
+                retakeBtn.addEventListener("click", () => {
+                    removeBtn.click();
+                });
+            }
+        })();
+    </script>
+    <script src="{{ url_for('static', filename='js/auth-toast.js', v='20260223-auth-toast') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/upload.js', v='20260223-login-popup') }}" defer></script>
+</body>
+</html>

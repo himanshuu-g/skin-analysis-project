@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skin Analysis Result</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/result.css') }}">
+</head>
+<body class="result-page">
+    <div class="page-shell">
+        {% include "_auth_header.html" %}
+
+        <main class="result-layout">
+            <section class="card section-card">
+                <div class="summary-head">
+                    <div>
+                        <h1>Skin Analysis Results</h1>
+                        <p class="text-muted">AI-generated insights based on your uploaded photo.</p>
+                        {% if from_history and history_timestamp %}
+                        <p class="text-muted result-saved-time">Saved on: {{ history_timestamp }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="skin-type-badge">{{ skin|capitalize }} Skin</div>
+                </div>
+
+                <div class="confidence-row">
+                    <strong>AI Confidence:</strong> {{ cnn_confidence }}%
+                </div>
+                <div class="confidence-track">
+                    <div class="confidence-fill" style="width: {{ cnn_confidence }}%"></div>
+                </div>
+
+                {% if is_low_confidence %}
+                <div class="confidence-warning">
+                    Low confidence prediction. This image may be outside the model's reliable range.
+                    Use a clear, front-facing face photo in good lighting for better results.
+                </div>
+                {% endif %}
+
+                {% if class_probabilities %}
+                <div class="probability-list">
+                    dry: {{ (class_probabilities.get('dry', 0) * 100)|round(1) }}% |
+                    normal: {{ (class_probabilities.get('normal', 0) * 100)|round(1) }}% |
+                    oily: {{ (class_probabilities.get('oily', 0) * 100)|round(1) }}%
+                </div>
+                {% endif %}
+            </section>
+
+            <section class="card section-card">
+                <div class="images-grid">
+                    <div class="image-box">
+                        <img src="/{{ image_path }}" alt="Original Image">
+                        <h3>Original Image</h3>
+                    </div>
+                    <div class="image-box">
+                        <img src="/{{ gradcam_image }}" alt="Grad-CAM Heatmap">
+                        <h3>AI Focus Areas (Grad-CAM)</h3>
+                        <p class="image-note">Red and yellow areas show where the AI analyzed your skin.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card section-card">
+                <h2 class="section-title">About Your Skin Type</h2>
+                <p class="description">{{ recommendations.description }}</p>
+            </section>
+
+            <section class="card section-card">
+                <h2 class="section-title">Common Characteristics</h2>
+                <ul class="characteristics-list">
+                    {% for char in recommendations.characteristics %}
+                    <li>{{ char }}</li>
+                    {% endfor %}
+                </ul>
+            </section>
+
+            <section class="card section-card">
+                <h2 class="section-title">Skincare Guidelines</h2>
+                <div class="guidelines-grid">
+                    <div class="guideline-box guideline-dos">
+                        <h3>DO's</h3>
+                        <ul>
+                            {% for do in recommendations.dos %}
+                            <li>{{ do }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div class="guideline-box guideline-donts">
+                        <h3>DON'Ts</h3>
+                        <ul>
+                            {% for dont in recommendations.donts %}
+                            <li>{{ dont }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card section-card">
+                <h2 class="section-title">Recommended Products</h2>
+                <div class="product-grid">
+                    {% for product in recommendations.products %}
+                    <article class="product-card">
+                        <div class="product-head">
+                            <span class="product-category">{{ product.category }}</span>
+                            <span class="product-price">{{ product.price }}</span>
+                        </div>
+                        <div class="product-name">{{ product.name }}</div>
+                        <div class="product-why">
+                            <strong>Why this works:</strong> {{ product.why }}
+                        </div>
+                        <div class="product-alternative">
+                            <strong>Budget Alternative:</strong> {{ product.alternative }}
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="card section-card">
+                <h2 class="section-title">Your Daily Routine</h2>
+                <div class="routine-grid">
+                    <div class="routine-box">
+                        <h3>Morning Routine</h3>
+                        <ol>
+                            {% for step in recommendations.routine.morning %}
+                            <li>{{ step }}</li>
+                            {% endfor %}
+                        </ol>
+                    </div>
+                    <div class="routine-box">
+                        <h3>Evening Routine</h3>
+                        <ol>
+                            {% for step in recommendations.routine.evening %}
+                            <li>{{ step }}</li>
+                            {% endfor %}
+                        </ol>
+                    </div>
+                </div>
+            </section>
+
+            <div class="actions-row">
+                <a href="{{ url_for('analyzer') }}" class="btn btn-primary">Analyze Another Image</a>
+                {% if from_history %}
+                <a href="{{ url_for('analyzer') }}#dashboard-history-view" class="btn btn-light">Back to Dashboard</a>
+                {% endif %}
+                <a href="{{ url_for('logout') }}" class="btn btn-light">Logout</a>
+            </div>
+        </main>
+
+        {% include "_footer.html" %}
+    </div>
+</body>
+</html>

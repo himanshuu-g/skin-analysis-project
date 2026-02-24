@@ -1,0 +1,56 @@
+<header class="app-header auth-header">
+    <div class="auth-header-main">
+        <h1 class="auth-greeting" data-auth-greeting>{{ auth_greeting|default('Good Morning', true) }}, {{ auth_user_first_name|default('User', true) }}</h1>
+        <p class="auth-date">
+            <span class="auth-date-icon">&#128197;</span>
+            <span data-auth-date>{{ auth_date_label|default('', true) }}</span>
+        </p>
+    </div>
+
+    <div class="auth-header-tools">
+        <label class="auth-search" aria-label="Search">
+            <span class="auth-search-icon">&#128269;</span>
+            <input type="search" placeholder="Search..." autocomplete="off">
+        </label>
+
+        <a class="auth-bell" href="{{ url_for('settings') }}" aria-label="Notifications">
+            <span class="auth-bell-icon">&#128276;</span>
+            <span class="auth-bell-badge">{{ auth_notification_count }}</span>
+        </a>
+
+        <a class="auth-avatar" href="{{ url_for('settings') }}" aria-label="User profile">
+            {{ auth_user_initials }}
+        </a>
+    </div>
+</header>
+<script>
+(() => {
+    const dateTargets = document.querySelectorAll("[data-auth-date]");
+    const greetingTargets = document.querySelectorAll("[data-auth-greeting]");
+    const now = new Date();
+    const hour = now.getHours();
+    let greeting = "Good Evening";
+    if (hour < 12) {
+        greeting = "Good Morning";
+    } else if (hour < 17) {
+        greeting = "Good Afternoon";
+    }
+
+    const options = { weekday: "long", month: "long", day: "numeric", year: "numeric" };
+    const dateText = now.toLocaleDateString("en-US", options);
+
+    dateTargets.forEach((node) => {
+        if (!node.textContent || !node.textContent.trim()) {
+            node.textContent = dateText;
+        }
+    });
+
+    greetingTargets.forEach((node) => {
+        if (!node.textContent || !node.textContent.trim().startsWith("Good")) {
+            const parts = node.textContent.split(",");
+            const namePart = parts.length > 1 ? parts[1].trim() : "User";
+            node.textContent = `${greeting}, ${namePart}`;
+        }
+    });
+})();
+</script>

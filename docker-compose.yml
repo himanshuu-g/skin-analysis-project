@@ -1,0 +1,14 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-0}
+      FLASK_DEBUG: ${FLASK_DEBUG:-0}
+    volumes:
+      - ./static/uploads:/app/static/uploads
+      - ./static/gradcam:/app/static/gradcam

@@ -1,0 +1,131 @@
+.settings-content {
+    align-content: start;
+}
+
+.settings-page-card {
+    padding: 20px;
+}
+
+.settings-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.settings-head h2 {
+    margin-top: 4px;
+    color: #181412;
+    line-height: 1.08;
+    font-family: "Playfair Display", Georgia, "Times New Roman", serif;
+    font-size: clamp(2rem, 2vw, 2.4rem);
+    font-weight: 700;
+}
+
+.settings-layout {
+    display: grid;
+    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+    gap: 16px;
+}
+
+.settings-nav {
+    display: grid;
+    gap: 8px;
+    align-content: start;
+}
+
+.settings-tab {
+    min-height: 42px;
+    border: 1px solid #d8d2c8;
+    border-radius: 12px;
+    background: #f7f5f2;
+    color: #4f4b46;
+    font-size: 0.97rem;
+    font-weight: 600;
+    text-align: left;
+    padding: 0 12px;
+    cursor: default;
+}
+
+.settings-tab.is-active {
+    border-color: #cfd8d2;
+    background: #dce5df;
+    color: #046f4b;
+}
+
+.settings-panel {
+    border: 1px solid #dad3c9;
+    border-radius: 16px;
+    background: #f7f6f3;
+    padding: 18px;
+}
+
+.settings-panel h3 {
+    color: #181412;
+    line-height: 1.08;
+    font-family: "Playfair Display", Georgia, "Times New Roman", serif;
+    font-size: clamp(1.5rem, 1.7vw, 2rem);
+    font-weight: 700;
+}
+
+.settings-panel p {
+    margin-top: 6px;
+    color: #68635d;
+    font-size: 0.95rem;
+}
+
+.settings-form {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.settings-form label {
+    display: grid;
+    gap: 6px;
+}
+
+.settings-form label.is-full {
+    grid-column: 1 / -1;
+}
+
+.settings-form span {
+    color: #4a4540;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.settings-form input {
+    width: 100%;
+    min-height: 42px;
+    border: 1px solid #d6cec3;
+    border-radius: 12px;
+    background: #f1efeb;
+    color: #302b27;
+    font-size: 0.95rem;
+    padding: 0 12px;
+}
+
+.settings-actions {
+    grid-column: 1 / -1;
+    margin-top: 4px;
+    display: inline-flex;
+    gap: 10px;
+}
+
+.settings-back-btn {
+    text-decoration: none;
+    min-width: 170px;
+}
+
+@media (max-width: 980px) {
+    .settings-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .settings-form {
+        grid-template-columns: 1fr;
+    }
+}

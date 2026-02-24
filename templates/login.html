@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - SkinAnalysis AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body class="auth-page">
+    <div class="page-shell auth-shell">
+        <header class="app-header">
+            <div class="brand">SkinAnalysis AI</div>
+            <nav class="app-nav">
+                <a class="nav-link" href="{{ url_for('home') }}">Home</a>
+                <a class="btn btn-light" href="{{ url_for('signup') }}">Signup</a>
+            </nav>
+        </header>
+
+        <main class="auth-main">
+            <div class="auth-wrapper">
+                <div class="card auth-card">
+                    <h1>Login</h1>
+                    <p class="auth-subtitle">Sign in to continue to skin analysis.</p>
+
+                    {% if error %}
+                    <div class="auth-error">{{ error }}</div>
+                    {% endif %}
+
+                    <form method="POST" action="{{ url_for('login') }}" class="auth-form">
+                        <input type="hidden" name="next" value="{{ next_url }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <label for="email">Email</label>
+                        <input id="email" type="email" name="email" value="{{ form_email }}" required>
+
+                        <label for="password">Password</label>
+                        <input id="password" type="password" name="password" required>
+
+                        <button class="btn btn-primary" type="submit">Login</button>
+                    </form>
+
+                    <p class="auth-footer">
+                        New user?
+                        <a href="{{ url_for('signup') }}">Create an account</a>
+                    </p>
+                    <p class="auth-footer">
+                        <a href="{{ url_for('home') }}">Back to home</a>
+                    </p>
+                </div>
+            </div>
+        </main>
+
+        {% include "_footer.html" %}
+    </div>
+
+    <script>
+        (() => {
+            const form = document.querySelector(".auth-form");
+            if (!form) return;
+
+            form.addEventListener("submit", () => {
+                try {
+                    window.sessionStorage.setItem("skinanalysis_guide_pending", "1");
+                } catch (_err) {
+                    return;
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

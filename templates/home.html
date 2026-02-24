@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkinAnalysis AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+</head>
+<body class="home-page">
+    {% if auth_notice %}
+    <div class="auth-status-toast" id="authStatusToast" role="status" aria-live="polite">
+        <span class="auth-status-toast-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+                <path d="M20 7L10.2 17 4 11.3"></path>
+            </svg>
+        </span>
+        <span class="auth-status-toast-text">{{ auth_notice }}</span>
+        <button type="button" class="auth-status-toast-close" id="authStatusToastClose" aria-label="Dismiss notification">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 6l12 12"></path>
+                <path d="M18 6L6 18"></path>
+            </svg>
+        </button>
+    </div>
+    {% endif %}
+
+    <header class="landing-header">
+        <div class="landing-header-inner">
+            <a class="landing-brand" href="{{ url_for('home') }}">
+                <svg class="brand-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4.3 13.2c0-5 4-9 9-9h5.5v5.5c0 5-4 9-9 9H4.3z" />
+                    <path d="M6.3 16.5c3.7-.2 6.8-2.1 9.1-5.3" />
+                </svg>
+                <span>SkinAnalysis AI</span>
+            </a>
+
+            <nav class="landing-nav" aria-label="Primary">
+                <a href="#features">Features</a>
+                <a href="#how-it-works">How It Works</a>
+                <a href="#gallery">Gallery</a>
+            </nav>
+
+            <div class="landing-auth">
+                <a class="login-link" href="#auth-login" data-auth-nav="login">Log In</a>
+                <a class="signup-link" href="#auth-signup" data-auth-nav="signup">Sign Up</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="landing-main">
+        <section class="hero-layout">
+            <div class="hero-copy">
+                <p class="hero-pill" id="features">
+                    <svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 2.8l1.7 4.6 4.6 1.7-4.6 1.7-1.7 4.6-1.7-4.6L5.7 9.1l4.6-1.7L12 2.8z" />
+                        <path d="M18.2 12.9l.9 2.4 2.4.9-2.4.9-.9 2.4-.9-2.4-2.4-.9 2.4-.9.9-2.4z" />
+                    </svg>
+                    AI-POWERED ANALYSIS
+                </p>
+
+                <h1 id="how-it-works">
+                    <span class="headline-dark">Know Your Skin.</span>
+                    <span class="headline-accent">Love Your Skin.</span>
+                </h1>
+
+                <p class="hero-description">
+                    Advanced AI technology analyzes your unique skin profile and delivers personalized recommendations tailored to your needs. Get started in seconds.
+                </p>
+
+                <div class="hero-actions">
+                    <a class="cta-primary" href="#auth-login" data-auth-nav="login">
+                        Start Your Analysis
+                        <span aria-hidden="true">&rarr;</span>
+                    </a>
+                    <a class="cta-secondary" href="#gallery">View Gallery</a>
+                </div>
+
+                <dl class="hero-stats">
+                    <div class="stat-item">
+                        <dt>50K+</dt>
+                        <dd>Scans Completed</dd>
+                    </div>
+                    <div class="stat-item">
+                        <dt>98%</dt>
+                        <dd>Accuracy Rate</dd>
+                    </div>
+                    <div class="stat-item">
+                        <dt>4.9</dt>
+                        <dd>User Rating</dd>
+                    </div>
+                </dl>
+            </div>
+
+            <div class="hero-visual-wrap">
+                <figure class="hero-visual">
+                    <img
+                        src="{{ url_for('static', filename='uploads/hero-face.jpg') }}"
+                        alt="AI face scanning visualization"
+                        onerror="this.onerror=null;this.src='{{ url_for('static', filename='uploads/IMAGE 1 SCP.jpg') }}';"
+                    >
+                    <figcaption>
+                        <span class="live-dot" aria-hidden="true"></span>
+                        Real-time AI Analysis
+                    </figcaption>
+                </figure>
+            </div>
+        </section>
+
+        <section class="gallery-section" id="gallery">
+            <div class="gallery-intro">
+                <p class="gallery-label">GALLERY</p>
+                <h2>See the Transformation</h2>
+                <p class="gallery-subtitle">
+                    Real results from real people. Our AI-driven approach delivers visible, lasting improvements.
+                </p>
+            </div>
+
+            <div class="gallery-grid">
+                <article class="gallery-card">
+                    <img
+                        src="{{ url_for('static', filename='uploads/gallery-skin-health.jpg') }}"
+                        alt="Skin health assessment"
+                        onerror="this.onerror=null;this.src='{{ url_for('static', filename='uploads/IMAGE 3 SCP.jpg') }}';"
+                    >
+                    <div class="gallery-card-copy">
+                        <h3>SKIN HEALTH</h3>
+                        <p>Comprehensive health assessment</p>
+                    </div>
+                </article>
+
+                <article class="gallery-card">
+                    <img
+                        src="{{ url_for('static', filename='uploads/gallery-personalized-care.jpg') }}"
+                        alt="Personalized skincare products"
+                        onerror="this.onerror=null;this.src='{{ url_for('static', filename='uploads/IMAGE 4 SCP.jpg') }}';"
+                    >
+                    <div class="gallery-card-copy">
+                        <h3>PERSONALIZED CARE</h3>
+                        <p>Curated product recommendations</p>
+                    </div>
+                </article>
+
+                <article class="gallery-card">
+                    <img
+                        src="{{ url_for('static', filename='uploads/gallery-ai-analysis.jpg') }}"
+                        alt="AI facial analysis visualization"
+                        onerror="this.onerror=null;this.src='{{ url_for('static', filename='uploads/IMAGE 1 SCP.jpg') }}';"
+                    >
+                    <div class="gallery-card-copy">
+                        <h3>AI ANALYSIS</h3>
+                        <p>Advanced scanning technology</p>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="workflow-section">
+            <div class="workflow-grid">
+                <article class="workflow-card">
+                    <div class="workflow-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M4 8.5A2.5 2.5 0 0 1 6.5 6H8l1-1.5h6L16 6h1.5A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z" />
+                            <circle cx="12" cy="12.5" r="3.2" />
+                        </svg>
+                    </div>
+                    <h3>Scan &amp; Detect</h3>
+                    <p>Upload a selfie and our AI instantly maps your skin's texture, tone, and concerns with clinical precision.</p>
+                </article>
+
+                <article class="workflow-card">
+                    <div class="workflow-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 3.5l6 2.4v4.6c0 4.3-2.7 8.2-6 9.9-3.3-1.7-6-5.6-6-9.9V5.9z" />
+                        </svg>
+                    </div>
+                    <h3>Protect &amp; Prevent</h3>
+                    <p>Receive proactive recommendations to shield your skin from damage and prevent future concerns.</p>
+                </article>
+
+                <article class="workflow-card">
+                    <div class="workflow-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M13.5 2.5L6.8 12h4.6L10.5 21.5 17.2 12h-4.6z" />
+                        </svg>
+                    </div>
+                    <h3>Track &amp; Transform</h3>
+                    <p>Monitor your skin's journey over time with detailed progress tracking and adaptive routines.</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="auth-scroll-section" id="auth-section">
+            <span id="auth-login" class="auth-anchor" aria-hidden="true"></span>
+            <span id="auth-signup" class="auth-anchor" aria-hidden="true"></span>
+            <input type="hidden" id="homeAuthCsrfToken" value="{{ csrf_token() }}">
+
+            <div class="auth-intro auth-intro-login is-active" data-auth-intro="login">
+                <div class="auth-brand-chip" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M4.3 13.2c0-5 4-9 9-9h5.5v5.5c0 5-4 9-9 9H4.3z" />
+                        <path d="M6.3 16.5c3.7-.2 6.8-2.1 9.1-5.3" />
+                    </svg>
+                </div>
+                <h2>Welcome Back</h2>
+                <p>Sign in to continue your skin journey</p>
+            </div>
+
+            <div class="auth-intro auth-intro-signup" data-auth-intro="signup">
+                <div class="auth-brand-chip" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M4.3 13.2c0-5 4-9 9-9h5.5v5.5c0 5-4 9-9 9H4.3z" />
+                        <path d="M6.3 16.5c3.7-.2 6.8-2.1 9.1-5.3" />
+                    </svg>
+                </div>
+                <h2>Get Started</h2>
+                <p>Create an account to start analyzing your skin</p>
+            </div>
+
+            <div class="auth-panel">
+                <div class="auth-switch" role="tablist" aria-label="Authentication">
+                    <button type="button" class="auth-switch-btn is-active" data-auth-tab-btn="login" role="tab" aria-selected="true">Log In</button>
+                    <button type="button" class="auth-switch-btn" data-auth-tab-btn="signup" role="tab" aria-selected="false">Sign Up</button>
+                </div>
+
+                <p class="auth-inline-error" id="authInlineError" hidden></p>
+
+                <form class="auth-form-block is-active" data-auth-form="login" id="homeLoginForm" novalidate>
+                    <label for="home_login_email">Email Address</label>
+                    <div class="auth-input-wrap">
+                        <svg class="auth-input-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M4 6h16v12H4z" />
+                            <path d="M5 7l7 6 7-6" />
+                        </svg>
+                        <input id="home_login_email" name="email" type="email" placeholder="jane@example.com" required>
+                    </div>
+
+                    <div class="auth-label-row">
+                        <label for="home_login_password">Password</label>
+                        <a href="{{ url_for('login') }}">Forgot password?</a>
+                    </div>
+                    <div class="auth-input-wrap">
+                        <svg class="auth-input-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <rect x="5" y="10" width="14" height="10" rx="2" />
+                            <path d="M8 10V8a4 4 0 0 1 8 0v2" />
+                        </svg>
+                        <input id="home_login_password" name="password" type="password" placeholder="Enter your password" required>
+                        <button class="auth-eye-toggle" type="button" data-password-target="home_login_password" aria-label="Show password">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z" />
+                                <circle cx="12" cy="12" r="3" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <button type="submit" class="auth-submit-btn">Sign In</button>
+                </form>
+
+                <form class="auth-form-block" data-auth-form="signup" id="homeSignupForm" novalidate>
+                    <label for="home_signup_name">Full Name</label>
+                    <div class="auth-input-wrap">
+                        <svg class="auth-input-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <circle cx="12" cy="8" r="3.2" />
+                            <path d="M5.5 18c1.7-2.7 3.9-4 6.5-4s4.8 1.3 6.5 4" />
+                        </svg>
+                        <input id="home_signup_name" name="name" type="text" placeholder="Jane Smith" required>
+                    </div>
+
+                    <label for="home_signup_email">Email Address</label>
+                    <div class="auth-input-wrap">
+                        <svg class="auth-input-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M4 6h16v12H4z" />
+                            <path d="M5 7l7 6 7-6" />
+                        </svg>
+                        <input id="home_signup_email" name="email" type="email" placeholder="jane@example.com" required>
+                    </div>
+
+                    <label for="home_signup_contact_number">Contact Number</label>
+                    <div class="auth-input-wrap">
+                        <svg class="auth-input-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M7.2 3.8h2.9l1.1 3.1-1.5 1.5a13 13 0 0 0 5.8 5.8l1.5-1.5 3.1 1.1v2.9a1.7 1.7 0 0 1-1.7 1.7A14.6 14.6 0 0 1 5.5 5.5a1.7 1.7 0 0 1 1.7-1.7z" />
+                        </svg>
+                        <input id="home_signup_contact_number" name="contact_number" type="tel" inputmode="tel" placeholder="+919876543210" required>
+                    </div>
+
+                    <label for="home_signup_password">Password</label>
+                    <div class="auth-input-wrap">
+                        <svg class="auth-input-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <rect x="5" y="10" width="14" height="10" rx="2" />
+                            <path d="M8 10V8a4 4 0 0 1 8 0v2" />
+                        </svg>
+                        <input id="home_signup_password" name="password" type="password" placeholder="Enter your password" minlength="8" required>
+                        <button class="auth-eye-toggle" type="button" data-password-target="home_signup_password" aria-label="Show password">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z" />
+                                <circle cx="12" cy="12" r="3" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <button type="submit" class="auth-submit-btn">Create Account</button>
+                </form>
+
+                <div class="auth-divider">
+                    <span>or continue with</span>
+                </div>
+
+                <div class="auth-social">
+                    <button type="button" class="auth-social-btn">
+                        <span class="social-google" aria-hidden="true">G</span>
+                        Google
+                    </button>
+                    <button type="button" class="auth-social-btn">
+                        <span class="social-apple" aria-hidden="true">&#63743;</span>
+                        Apple
+                    </button>
+                </div>
+            </div>
+
+            <p class="auth-terms">
+                By continuing, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+            </p>
+        </section>
+    </main>
+
+    <footer class="landing-footer">
+        <div class="landing-footer-inner">
+            <a class="landing-footer-brand" href="{{ url_for('home') }}">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4.3 13.2c0-5 4-9 9-9h5.5v5.5c0 5-4 9-9 9H4.3z" />
+                    <path d="M6.3 16.5c3.7-.2 6.8-2.1 9.1-5.3" />
+                </svg>
+                <span>SkinAnalysis AI</span>
+            </a>
+
+            <nav class="landing-footer-nav" aria-label="Footer">
+                <a href="#">Privacy</a>
+                <a href="#">Terms</a>
+                <a href="#">Contact</a>
+            </nav>
+
+            <p class="landing-footer-copy">2026 SkinAnalysis AI. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/auth-toast.js', v='20260223-auth-toast') }}" defer></script>
+    <script>
+        (() => {
+            const authSection = document.querySelector(".auth-scroll-section");
+            if (!authSection) return;
+
+            const analyzerUrl = "{{ url_for('analyzer') }}";
+            const guidePendingKey = "skinanalysis_guide_pending";
+            let csrfToken = document.getElementById("homeAuthCsrfToken")?.value || "";
+
+            const tabButtons = Array.from(document.querySelectorAll("[data-auth-tab-btn]"));
+            const intros = Array.from(document.querySelectorAll("[data-auth-intro]"));
+            const forms = Array.from(document.querySelectorAll("[data-auth-form]"));
+            const navLinks = Array.from(document.querySelectorAll("[data-auth-nav]"));
+            const errorEl = document.getElementById("authInlineError");
+            const loginForm = document.getElementById("homeLoginForm");
+            const signupForm = document.getElementById("homeSignupForm");
+
+            const hashToTab = () => (window.location.hash === "#auth-signup" ? "signup" : "login");
+
+            const showError = (message) => {
+                if (!errorEl) return;
+                if (!message) {
+                    errorEl.hidden = true;
+                    errorEl.textContent = "";
+                    return;
+                }
+                errorEl.textContent = message;
+                errorEl.hidden = false;
+            };
+
+            const setActiveTab = (tab) => {
+                tabButtons.forEach((button) => {
+                    const isActive = button.dataset.authTabBtn === tab;
+                    button.classList.toggle("is-active", isActive);
+                    button.setAttribute("aria-selected", isActive ? "true" : "false");
+                });
+
+                intros.forEach((intro) => {
+                    intro.classList.toggle("is-active", intro.dataset.authIntro === tab);
+                });
+
+                forms.forEach((form) => {
+                    form.classList.toggle("is-active", form.dataset.authForm === tab);
+                });
+
+                showError("");
+            };
+
+            setActiveTab(hashToTab());
+
+            window.addEventListener("hashchange", () => {
+                if (window.location.hash === "#auth-login" || window.location.hash === "#auth-signup") {
+                    setActiveTab(hashToTab());
+                }
+            });
+
+            tabButtons.forEach((button) => {
+                button.addEventListener("click", () => {
+                    const tab = button.dataset.authTabBtn;
+                    const hash = tab === "signup" ? "#auth-signup" : "#auth-login";
+                    if (window.location.hash !== hash) {
+                        window.location.hash = hash;
+                    }
+                    setActiveTab(tab);
+                });
+            });
+
+            navLinks.forEach((link) => {
+                link.addEventListener("click", () => {
+                    const tab = link.dataset.authNav === "signup" ? "signup" : "login";
+                    setActiveTab(tab);
+                });
+            });
+
+            document.querySelectorAll(".auth-eye-toggle").forEach((button) => {
+                button.addEventListener("click", () => {
+                    const targetId = button.dataset.passwordTarget;
+                    const input = document.getElementById(targetId);
+                    if (!input) return;
+                    const nextType = input.type === "password" ? "text" : "password";
+                    input.type = nextType;
+                    button.setAttribute("aria-label", nextType === "password" ? "Show password" : "Hide password");
+                });
+            });
+
+            const parseResponse = async (response) => {
+                try {
+                    return await response.json();
+                } catch (_err) {
+                    return {};
+                }
+            };
+
+            const markGuidePending = () => {
+                try {
+                    window.sessionStorage.setItem(guidePendingKey, "1");
+                } catch (_err) {
+                    return;
+                }
+            };
+
+            if (loginForm) {
+                loginForm.addEventListener("submit", async (event) => {
+                    event.preventDefault();
+                    showError("");
+
+                    const payload = {
+                        email: loginForm.email.value.trim(),
+                        password: loginForm.password.value,
+                    };
+
+                    try {
+                        const response = await fetch("{{ url_for('api_login') }}", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "X-CSRF-Token": csrfToken,
+                            },
+                            body: JSON.stringify(payload),
+                        });
+
+                        const data = await parseResponse(response);
+                        if (data.csrf_token) csrfToken = data.csrf_token;
+
+                        if (!response.ok) {
+                            showError(data.error || "Unable to sign in. Please try again.");
+                            return;
+                        }
+
+                        markGuidePending();
+                        window.location.href = analyzerUrl;
+                    } catch (_err) {
+                        showError("Network error. Please try again.");
+                    }
+                });
+            }
+
+            if (signupForm) {
+                signupForm.addEventListener("submit", async (event) => {
+                    event.preventDefault();
+                    showError("");
+
+                    const password = signupForm.password.value;
+                    const payload = {
+                        name: signupForm.name.value.trim(),
+                        email: signupForm.email.value.trim(),
+                        contact_number: signupForm.contact_number.value.trim(),
+                        password: password,
+                        confirm_password: password,
+                    };
+
+                    try {
+                        const response = await fetch("{{ url_for('api_signup') }}", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "X-CSRF-Token": csrfToken,
+                            },
+                            body: JSON.stringify(payload),
+                        });
+
+                        const data = await parseResponse(response);
+                        if (data.csrf_token) csrfToken = data.csrf_token;
+
+                        if (!response.ok) {
+                            showError(data.error || "Unable to create account. Please try again.");
+                            return;
+                        }
+
+                        markGuidePending();
+                        window.location.href = analyzerUrl;
+                    } catch (_err) {
+                        showError("Network error. Please try again.");
+                    }
+                });
+            }
+        })();
+    </script>
+</body>
+</html>

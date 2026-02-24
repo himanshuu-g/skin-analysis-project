@@ -1,0 +1,64 @@
+{
+  "source_root": "dataset/train",
+  "output_root": "dataset/split",
+  "seed": 42,
+  "ratios": {
+    "train": 0.7,
+    "val": 0.15,
+    "test": 0.15
+  },
+  "quality_thresholds": {
+    "min_width": 80,
+    "min_height": 80,
+    "min_sharpness_laplacian_var": 20.0
+  },
+  "class_stats": {
+    "dry": {
+      "scanned": 652,
+      "kept": 648,
+      "removed_copy_name": 0,
+      "removed_unreadable": 0,
+      "removed_small": 0,
+      "removed_blurry": 4,
+      "removed_duplicate_hash": 0,
+      "removed_bad_extension": 0
+    },
+    "normal": {
+      "scanned": 1104,
+      "kept": 1053,
+      "removed_copy_name": 0,
+      "removed_unreadable": 0,
+      "removed_small": 0,
+      "removed_blurry": 9,
+      "removed_duplicate_hash": 42,
+      "removed_bad_extension": 0
+    },
+    "oily": {
+      "scanned": 1000,
+      "kept": 651,
+      "removed_copy_name": 346,
+      "removed_unreadable": 0,
+      "removed_small": 0,
+      "removed_blurry": 3,
+      "removed_duplicate_hash": 0,
+      "removed_bad_extension": 0
+    }
+  },
+  "split_counts": {
+    "train": {
+      "dry": 453,
+      "normal": 737,
+      "oily": 455
+    },
+    "val": {
+      "dry": 97,
+      "normal": 157,
+      "oily": 97
+    },
+    "test": {
+      "dry": 98,
+      "normal": 159,
+      "oily": 99
+    }
+  }
+}

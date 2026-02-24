@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Status</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/analyzer.css') }}">
+</head>
+<body class="analyzer-page">
+    <div class="page-shell">
+        {% if session.get('user_id') %}
+        {% include "_auth_header.html" %}
+        {% else %}
+        <header class="app-header">
+            <div class="brand">SkinAnalysis AI</div>
+            <nav class="app-nav">
+                <a class="nav-link" href="{{ url_for('home') }}">Home</a>
+                <a class="btn btn-light" href="{{ url_for('login') }}">Login</a>
+            </nav>
+        </header>
+        {% endif %}
+
+        <main class="analyzer-layout">
+            <section class="card analyzer-main">
+                <h1>Upload Progress</h1>
+                <p class="analyzer-subtitle">This page shows the analysis loading state.</p>
+                <div id="loadingDiv" class="inline-loading inline-loading-visible">
+                    <div class="spinner"></div>
+                    <p>Analyzing your skin... Please wait</p>
+                </div>
+            </section>
+        </main>
+
+        {% include "_footer.html" %}
+    </div>
+</body>
+</html>
