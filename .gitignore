@@ -35,3 +35,10 @@ static/uploads/
 static/gradcam/
 static/test_gradcam/
 *.log
+
+venv/
+__pycache__/
+*.keras
+*.h5
+*.pth
+*.pt
