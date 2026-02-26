@@ -97,6 +97,10 @@ Open: `http://127.0.0.1:5000`
 - `GET /api/auth/me`
 - `POST /api/auth/logout`
 - `GET /api/results?limit=20`
+- `GET /api/schedule/events`
+- `POST /api/schedule/events`
+- `PATCH /api/schedule/events/<event_id>`
+- `DELETE /api/schedule/events/<event_id>`
 - `POST /api/analyze` (multipart form-data with `image`)
 
 For protected `POST` endpoints, send CSRF token in:

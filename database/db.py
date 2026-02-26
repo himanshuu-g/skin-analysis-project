@@ -33,6 +33,46 @@ def _ensure_users_schema(conn):
     _add_column_if_missing(conn, "users", "contact_number", "contact_number TEXT NOT NULL DEFAULT ''")
 
 
+def _ensure_schedule_events_schema(conn):
+    _add_column_if_missing(conn, "schedule_events", "description", "description TEXT NOT NULL DEFAULT ''")
+    _add_column_if_missing(
+        conn,
+        "schedule_events",
+        "reminder_minutes",
+        "reminder_minutes INTEGER NOT NULL DEFAULT 30",
+    )
+    _add_column_if_missing(
+        conn,
+        "schedule_events",
+        "is_completed",
+        "is_completed INTEGER NOT NULL DEFAULT 0",
+    )
+    _add_column_if_missing(
+        conn,
+        "schedule_events",
+        "created_at",
+        "created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
+    )
+    _add_column_if_missing(
+        conn,
+        "schedule_events",
+        "updated_at",
+        "updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
+    )
+    conn.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_schedule_events_user_datetime
+        ON schedule_events (user_id, is_completed, event_datetime ASC)
+        """
+    )
+    conn.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_schedule_events_user_created_at
+        ON schedule_events (user_id, created_at DESC)
+        """
+    )
+
+
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -76,7 +116,25 @@ def get_db():
         )
         """
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS schedule_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            title TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            priority TEXT NOT NULL,
+            event_datetime TEXT NOT NULL,
+            description TEXT NOT NULL DEFAULT '',
+            reminder_minutes INTEGER NOT NULL DEFAULT 30,
+            is_completed INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
     _ensure_users_schema(conn)
     _ensure_results_schema(conn)
+    _ensure_schedule_events_schema(conn)
     conn.commit()
     return conn

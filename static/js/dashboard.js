@@ -8,6 +8,7 @@ export const initDashboardModule = ({
     const {
         dashboardHomeView,
         dashboardRoutineView,
+        dashboardScheduleView,
         dashboardHistoryView,
         dashboardSettingsView,
         sidebarDashboardLink,
@@ -271,7 +272,7 @@ export const initDashboardModule = ({
         if (hash === "#dashboard-routine" || hash === "#dashboard-routine-view") {
             return sidebarRoutineLink || sidebarDashboardLink;
         }
-        if (hash === "#dashboard-schedule") {
+        if (hash === "#dashboard-schedule" || hash === "#dashboard-schedule-view") {
             return sidebarScheduleLink || sidebarDashboardLink;
         }
         if (hash === "#dashboard-settings") {
@@ -284,7 +285,13 @@ export const initDashboardModule = ({
     };
 
     const setDashboardView = (view, options = {}) => {
-        if (!dashboardHomeView || !dashboardRoutineView || !dashboardHistoryView || !dashboardSettingsView) {
+        if (
+            !dashboardHomeView ||
+            !dashboardRoutineView ||
+            !dashboardScheduleView ||
+            !dashboardHistoryView ||
+            !dashboardSettingsView
+        ) {
             return;
         }
 
@@ -294,10 +301,13 @@ export const initDashboardModule = ({
                 : null;
 
         const normalizedView =
-            view === "routine" || view === "history" || view === "settings" ? view : "home";
+            view === "routine" || view === "schedule" || view === "history" || view === "settings"
+                ? view
+                : "home";
         const viewMap = {
             home: dashboardHomeView,
             routine: dashboardRoutineView,
+            schedule: dashboardScheduleView,
             history: dashboardHistoryView,
             settings: dashboardSettingsView,
         };
@@ -315,6 +325,11 @@ export const initDashboardModule = ({
             if (historyAnchor) {
                 historyAnchor.scrollIntoView({ block: "start" });
             }
+        } else if (normalizedView === "schedule") {
+            const scheduleAnchor = document.getElementById("dashboard-schedule-view");
+            if (scheduleAnchor) {
+                scheduleAnchor.scrollIntoView({ block: "start" });
+            }
         }
     };
 
@@ -322,6 +337,9 @@ export const initDashboardModule = ({
         const hash = window.location.hash.toLowerCase();
         if (hash === "#dashboard-routine" || hash === "#dashboard-routine-view") {
             return "routine";
+        }
+        if (hash === "#dashboard-schedule" || hash === "#dashboard-schedule-view") {
+            return "schedule";
         }
         if (hash === "#dashboard-settings") {
             return "settings";

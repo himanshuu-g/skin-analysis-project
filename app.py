@@ -15,6 +15,12 @@ from werkzeug.utils import secure_filename
 
 from database.auth import create_user, get_user_by_email, get_user_by_id
 from database.db import get_db
+from database.schedule_events import (
+    create_schedule_event_for_user,
+    delete_schedule_event_for_user,
+    get_schedule_events_for_user,
+    update_schedule_event_for_user,
+)
 from database.save_result import (
     delete_result_for_user,
     get_result_for_user,
@@ -46,6 +52,12 @@ ALLOWED_IMAGE_FORMATS = {"JPEG", "PNG", "BMP", "WEBP"}
 MAX_UPLOAD_SIZE_MB = 5
 DEFAULT_RESULTS_LIMIT = 20
 MAX_RESULTS_LIMIT = 100
+SCHEDULE_ALLOWED_EVENT_TYPES = {"scan", "appointment", "reminder", "refill"}
+SCHEDULE_ALLOWED_PRIORITIES = {"low", "medium", "high"}
+SCHEDULE_MAX_TITLE_LENGTH = 90
+SCHEDULE_MAX_DESCRIPTION_LENGTH = 240
+SCHEDULE_DEFAULT_REMINDER_MINUTES = 30
+SCHEDULE_MAX_REMINDER_MINUTES = 1440
 CSRF_SESSION_KEY = "csrf_token"
 AUTH_NOTICE_SESSION_KEY = "auth_notice"
 CONTACT_NUMBER_REGEX = re.compile(r"^\+?\d{10,15}$")
@@ -151,6 +163,123 @@ def _parse_results_limit(raw_limit):
     except ValueError:
         return DEFAULT_RESULTS_LIMIT
     return max(1, min(limit, MAX_RESULTS_LIMIT))
+
+
+def _parse_bool_value(raw_value, field_name="value"):
+    if isinstance(raw_value, bool):
+        return raw_value
+    if isinstance(raw_value, (int, float)):
+        return bool(int(raw_value))
+
+    text = str(raw_value or "").strip().lower()
+    if text in {"1", "true", "yes", "on"}:
+        return True
+    if text in {"0", "false", "no", "off"}:
+        return False
+    raise ValueError(f"Invalid {field_name}.")
+
+
+def _normalize_schedule_title(raw_title):
+    title = str(raw_title or "").strip()
+    if not title:
+        raise ValueError("Event title is required.")
+    if len(title) > SCHEDULE_MAX_TITLE_LENGTH:
+        raise ValueError(
+            f"Event title must be {SCHEDULE_MAX_TITLE_LENGTH} characters or fewer."
+        )
+    return title
+
+
+def _normalize_schedule_event_type(raw_type):
+    event_type = str(raw_type or "").strip().lower()
+    if event_type not in SCHEDULE_ALLOWED_EVENT_TYPES:
+        allowed = ", ".join(sorted(SCHEDULE_ALLOWED_EVENT_TYPES))
+        raise ValueError(f"Invalid event type. Allowed values: {allowed}.")
+    return event_type
+
+
+def _normalize_schedule_priority(raw_priority):
+    priority = str(raw_priority or "").strip().lower()
+    if priority not in SCHEDULE_ALLOWED_PRIORITIES:
+        allowed = ", ".join(sorted(SCHEDULE_ALLOWED_PRIORITIES))
+        raise ValueError(f"Invalid priority. Allowed values: {allowed}.")
+    return priority
+
+
+def _normalize_schedule_datetime(raw_datetime):
+    datetime_text = str(raw_datetime or "").strip()
+    if not datetime_text:
+        raise ValueError("Event date and time are required.")
+
+    normalized_text = datetime_text.replace("Z", "+00:00")
+    try:
+        parsed_time = datetime.fromisoformat(normalized_text)
+    except ValueError:
+        raise ValueError("Invalid event date and time.") from None
+
+    if parsed_time.tzinfo is None:
+        parsed_time = parsed_time.replace(tzinfo=timezone.utc)
+    return parsed_time.astimezone(timezone.utc).isoformat(timespec="seconds")
+
+
+def _normalize_schedule_description(raw_description):
+    description = str(raw_description or "").strip()
+    if len(description) > SCHEDULE_MAX_DESCRIPTION_LENGTH:
+        raise ValueError(
+            f"Description must be {SCHEDULE_MAX_DESCRIPTION_LENGTH} characters or fewer."
+        )
+    return description
+
+
+def _normalize_schedule_reminder_minutes(raw_minutes):
+    if raw_minutes is None or raw_minutes == "":
+        return SCHEDULE_DEFAULT_REMINDER_MINUTES
+    try:
+        minutes = int(raw_minutes)
+    except (TypeError, ValueError):
+        raise ValueError("Reminder time must be a number of minutes.") from None
+
+    if minutes < 0 or minutes > SCHEDULE_MAX_REMINDER_MINUTES:
+        raise ValueError(
+            f"Reminder time must be between 0 and {SCHEDULE_MAX_REMINDER_MINUTES} minutes."
+        )
+    return minutes
+
+
+def _parse_schedule_create_payload(payload):
+    return {
+        "title": _normalize_schedule_title(payload.get("title")),
+        "event_type": _normalize_schedule_event_type(payload.get("type")),
+        "priority": _normalize_schedule_priority(payload.get("priority")),
+        "event_datetime": _normalize_schedule_datetime(payload.get("datetime")),
+        "description": _normalize_schedule_description(payload.get("description", "")),
+        "reminder_minutes": _normalize_schedule_reminder_minutes(payload.get("reminder_minutes")),
+        "is_completed": _parse_bool_value(payload.get("completed", False), "completed flag"),
+    }
+
+
+def _parse_schedule_update_payload(payload):
+    updates = {}
+    if "title" in payload:
+        updates["title"] = _normalize_schedule_title(payload.get("title"))
+    if "type" in payload:
+        updates["event_type"] = _normalize_schedule_event_type(payload.get("type"))
+    if "priority" in payload:
+        updates["priority"] = _normalize_schedule_priority(payload.get("priority"))
+    if "datetime" in payload:
+        updates["event_datetime"] = _normalize_schedule_datetime(payload.get("datetime"))
+    if "description" in payload:
+        updates["description"] = _normalize_schedule_description(payload.get("description"))
+    if "reminder_minutes" in payload:
+        updates["reminder_minutes"] = _normalize_schedule_reminder_minutes(
+            payload.get("reminder_minutes")
+        )
+    if "completed" in payload:
+        updates["is_completed"] = _parse_bool_value(payload.get("completed"), "completed flag")
+
+    if not updates:
+        raise ValueError("No valid fields provided for update.")
+    return updates
 
 
 def _get_user_first_name(full_name):
@@ -1091,6 +1220,69 @@ def api_results():
     limit = _parse_results_limit(request.args.get("limit"))
     results = get_results_for_user(session["user_id"], limit=limit)
     return jsonify({"results": results, "count": len(results)})
+
+
+@app.route("/api/schedule/events", methods=["GET"])
+@login_required
+def api_schedule_events():
+    events = get_schedule_events_for_user(session["user_id"])
+    return jsonify({"events": events, "count": len(events)})
+
+
+@app.route("/api/schedule/events", methods=["POST"])
+@login_required
+@csrf_protect
+def api_schedule_create_event():
+    payload = _get_payload()
+    try:
+        normalized_payload = _parse_schedule_create_payload(payload)
+    except ValueError as err:
+        return _json_error(str(err))
+
+    created_event = create_schedule_event_for_user(
+        user_id=session["user_id"],
+        title=normalized_payload["title"],
+        event_type=normalized_payload["event_type"],
+        priority=normalized_payload["priority"],
+        event_datetime=normalized_payload["event_datetime"],
+        description=normalized_payload["description"],
+        reminder_minutes=normalized_payload["reminder_minutes"],
+        is_completed=normalized_payload["is_completed"],
+    )
+    if created_event is None:
+        return _json_error("Unable to create schedule event.", 500)
+
+    return jsonify({"event": created_event}), 201
+
+
+@app.route("/api/schedule/events/<int:event_id>", methods=["PATCH"])
+@login_required
+@csrf_protect
+def api_schedule_update_event(event_id):
+    payload = _get_payload()
+    try:
+        updates = _parse_schedule_update_payload(payload)
+    except ValueError as err:
+        return _json_error(str(err))
+
+    updated_event = update_schedule_event_for_user(
+        user_id=session["user_id"], event_id=event_id, updates=updates
+    )
+    if updated_event is None:
+        return _json_error("Schedule event not found.", 404)
+
+    return jsonify({"event": updated_event})
+
+
+@app.route("/api/schedule/events/<int:event_id>", methods=["DELETE"])
+@login_required
+@csrf_protect
+def api_schedule_delete_event(event_id):
+    deleted = delete_schedule_event_for_user(session["user_id"], event_id)
+    if not deleted:
+        return _json_error("Schedule event not found.", 404)
+
+    return jsonify({"deleted": True, "event_id": int(event_id)})
 
 
 @app.route("/api/analyze", methods=["POST"])

@@ -2,6 +2,7 @@ import { initDashboardModule } from "./dashboard.js";
 import { initAnalysisModule } from "./analysis.js";
 import { initHistoryModule } from "./history.js";
 import { initCameraModule } from "./camera.js";
+import { initScheduleModule } from "./schedule.js";
 
 document.addEventListener("DOMContentLoaded", () => {
     const imageInput = document.getElementById("imageInput");
@@ -38,6 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const sidebarCollapseBtn = document.getElementById("sidebarCollapseBtn");
     const dashboardHomeView = document.getElementById("dashboardHomeView");
     const dashboardRoutineView = document.getElementById("dashboardRoutineView");
+    const dashboardScheduleView = document.getElementById("dashboardScheduleView");
     const dashboardHistoryView = document.getElementById("dashboardHistoryView");
     const dashboardSettingsView = document.getElementById("dashboardSettingsView");
     const sidebarDashboardLink = document.getElementById("sidebarDashboardLink");
@@ -106,6 +108,38 @@ document.addEventListener("DOMContentLoaded", () => {
     const routineMorningTotal = document.getElementById("routineMorningTotal");
     const routineEveningDone = document.getElementById("routineEveningDone");
     const routineEveningTotal = document.getElementById("routineEveningTotal");
+    const scheduleAddEventBtn = document.getElementById("scheduleAddEventBtn");
+    const scheduleFilterButtons = Array.from(document.querySelectorAll("[data-schedule-filter]"));
+    const scheduleCountScan = document.getElementById("scheduleCountScan");
+    const scheduleCountAppointment = document.getElementById("scheduleCountAppointment");
+    const scheduleCountReminder = document.getElementById("scheduleCountReminder");
+    const scheduleCountRefill = document.getElementById("scheduleCountRefill");
+    const scheduleFilterCountAll = document.getElementById("scheduleFilterCountAll");
+    const scheduleFilterCountScan = document.getElementById("scheduleFilterCountScan");
+    const scheduleFilterCountAppointment = document.getElementById("scheduleFilterCountAppointment");
+    const scheduleFilterCountReminder = document.getElementById("scheduleFilterCountReminder");
+    const scheduleListTitle = document.getElementById("scheduleListTitle");
+    const scheduleEventList = document.getElementById("scheduleEventList");
+    const scheduleDetailDate = document.getElementById("scheduleDetailDate");
+    const scheduleDetailTypeIcon = document.getElementById("scheduleDetailTypeIcon");
+    const scheduleDetailTypeLabel = document.getElementById("scheduleDetailTypeLabel");
+    const scheduleDetailTime = document.getElementById("scheduleDetailTime");
+    const scheduleDetailDescription = document.getElementById("scheduleDetailDescription");
+    const scheduleDetailPriority = document.getElementById("scheduleDetailPriority");
+    const scheduleDetailComplete = document.getElementById("scheduleDetailComplete");
+    const scheduleReminderBtn = document.getElementById("scheduleReminderBtn");
+    const scheduleEventModal = document.getElementById("scheduleEventModal");
+    const scheduleModalCloseBtn = document.getElementById("scheduleModalCloseBtn");
+    const scheduleModalCancelBtn = document.getElementById("scheduleModalCancelBtn");
+    const scheduleEventForm = document.getElementById("scheduleEventForm");
+    const scheduleInputTitle = document.getElementById("scheduleInputTitle");
+    const scheduleInputType = document.getElementById("scheduleInputType");
+    const scheduleInputPriority = document.getElementById("scheduleInputPriority");
+    const scheduleInputDate = document.getElementById("scheduleInputDate");
+    const scheduleInputTime = document.getElementById("scheduleInputTime");
+    const scheduleInputReminder = document.getElementById("scheduleInputReminder");
+    const scheduleInputDescription = document.getElementById("scheduleInputDescription");
+    const scheduleFormError = document.getElementById("scheduleFormError");
     let activeGuideStep = 0;
     let selectedFile = null;
 
@@ -830,6 +864,7 @@ document.addEventListener("DOMContentLoaded", () => {
         elements: {
             dashboardHomeView,
             dashboardRoutineView,
+            dashboardScheduleView,
             dashboardHistoryView,
             dashboardSettingsView,
             sidebarDashboardLink,
@@ -903,6 +938,47 @@ document.addEventListener("DOMContentLoaded", () => {
         refreshHistoryCollapseState,
         appendHistoryItem,
     } = historyModule;
+
+    initScheduleModule({
+        elements: {
+            scheduleAddEventBtn,
+            scheduleFilterButtons,
+            scheduleCountScan,
+            scheduleCountAppointment,
+            scheduleCountReminder,
+            scheduleCountRefill,
+            scheduleFilterCountAll,
+            scheduleFilterCountScan,
+            scheduleFilterCountAppointment,
+            scheduleFilterCountReminder,
+            scheduleListTitle,
+            scheduleEventList,
+            scheduleDetailDate,
+            scheduleDetailTypeIcon,
+            scheduleDetailTypeLabel,
+            scheduleDetailTime,
+            scheduleDetailDescription,
+            scheduleDetailPriority,
+            scheduleDetailComplete,
+            scheduleReminderBtn,
+            scheduleEventModal,
+            scheduleModalCloseBtn,
+            scheduleModalCancelBtn,
+            scheduleEventForm,
+            scheduleInputTitle,
+            scheduleInputType,
+            scheduleInputPriority,
+            scheduleInputDate,
+            scheduleInputTime,
+            scheduleInputReminder,
+            scheduleInputDescription,
+            scheduleFormError,
+            csrfTokenInput,
+        },
+        hooks: {
+            showError,
+        },
+    });
 
     const { renderAnalysis } = initAnalysisModule({
         analysisResult,
@@ -1048,7 +1124,10 @@ document.addEventListener("DOMContentLoaded", () => {
         link.addEventListener("click", () => {
             const requestedView = String(link.dataset.dashboardView || "").toLowerCase();
             const view =
-                requestedView === "routine" || requestedView === "history" || requestedView === "settings"
+                requestedView === "routine" ||
+                requestedView === "schedule" ||
+                requestedView === "history" ||
+                requestedView === "settings"
                     ? requestedView
                     : "home";
             const activeLink = link.classList.contains("sidebar-link") ? link : null;

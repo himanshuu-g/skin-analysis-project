@@ -112,7 +112,7 @@
                     class="sidebar-link"
                     id="sidebarScheduleLink"
                     href="#dashboard-schedule"
-                    data-dashboard-view="home"
+                    data-dashboard-view="schedule"
                     title="Schedule"
                 >
                     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -523,6 +523,160 @@
                     </section>
                 </section>
 
+                <section class="dashboard-view" id="dashboardScheduleView" hidden>
+                    <section class="dashboard-card schedule-page-card" id="dashboard-schedule-view">
+                        <div class="schedule-page-head">
+                            <div>
+                                <h3>Schedule</h3>
+                                <p>Manage your skincare appointments and routine reminders.</p>
+                            </div>
+                            <button type="button" class="scan-primary schedule-add-btn" id="scheduleAddEventBtn">
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M12 5v14"></path>
+                                    <path d="M5 12h14"></path>
+                                </svg>
+                                Add Event
+                            </button>
+                        </div>
+
+                        <section class="schedule-overview-grid" aria-label="Schedule summary">
+                            <article class="dashboard-card schedule-overview-card">
+                                <span class="schedule-overview-icon is-scan" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24">
+                                        <rect x="4.5" y="5" width="15" height="15" rx="2"></rect>
+                                        <path d="M8 3.5v3"></path>
+                                        <path d="M16 3.5v3"></path>
+                                        <path d="M4.5 10h15"></path>
+                                    </svg>
+                                </span>
+                                <strong id="scheduleCountScan">0</strong>
+                                <small>Scans</small>
+                            </article>
+                            <article class="dashboard-card schedule-overview-card">
+                                <span class="schedule-overview-icon is-appointment" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24">
+                                        <circle cx="12" cy="12" r="8"></circle>
+                                        <path d="M12 8v4l2.8 2"></path>
+                                    </svg>
+                                </span>
+                                <strong id="scheduleCountAppointment">0</strong>
+                                <small>Appointments</small>
+                            </article>
+                            <article class="dashboard-card schedule-overview-card">
+                                <span class="schedule-overview-icon is-reminder" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M6.2 16.8h11.6"></path>
+                                        <path d="M8.2 16.8V10a3.8 3.8 0 1 1 7.6 0v6.8"></path>
+                                        <path d="M10.2 16.8a1.8 1.8 0 0 0 3.6 0"></path>
+                                    </svg>
+                                </span>
+                                <strong id="scheduleCountReminder">0</strong>
+                                <small>Reminders</small>
+                            </article>
+                            <article class="dashboard-card schedule-overview-card">
+                                <span class="schedule-overview-icon is-refill" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M12 3.5c2.8 4.6 5 7 5 10.1a5 5 0 1 1-10 0c0-3.1 2.2-5.5 5-10.1z"></path>
+                                    </svg>
+                                </span>
+                                <strong id="scheduleCountRefill">0</strong>
+                                <small>Refills</small>
+                            </article>
+                        </section>
+
+                        <div class="schedule-filter-row" role="tablist" aria-label="Schedule filter">
+                            <span class="schedule-filter-label">Filter:</span>
+                            <button
+                                type="button"
+                                class="schedule-filter-btn is-active"
+                                data-schedule-filter="all"
+                                role="tab"
+                                aria-selected="true"
+                            >
+                                All (<span id="scheduleFilterCountAll">0</span>)
+                            </button>
+                            <button
+                                type="button"
+                                class="schedule-filter-btn"
+                                data-schedule-filter="scan"
+                                role="tab"
+                                aria-selected="false"
+                            >
+                                Scans (<span id="scheduleFilterCountScan">0</span>)
+                            </button>
+                            <button
+                                type="button"
+                                class="schedule-filter-btn"
+                                data-schedule-filter="appointment"
+                                role="tab"
+                                aria-selected="false"
+                            >
+                                Appointments (<span id="scheduleFilterCountAppointment">0</span>)
+                            </button>
+                            <button
+                                type="button"
+                                class="schedule-filter-btn"
+                                data-schedule-filter="reminder"
+                                role="tab"
+                                aria-selected="false"
+                            >
+                                Reminders (<span id="scheduleFilterCountReminder">0</span>)
+                            </button>
+                        </div>
+
+                        <div class="schedule-main-grid">
+                            <section class="dashboard-card schedule-list-card">
+                                <h4 id="scheduleListTitle">Upcoming Events (0)</h4>
+                                <div class="schedule-event-list" id="scheduleEventList" aria-live="polite"></div>
+                            </section>
+
+                            <aside class="dashboard-card schedule-detail-card" id="scheduleDetailCard">
+                                <h4>Event Details</h4>
+                                <p class="schedule-detail-date" id="scheduleDetailDate">Select an event to view details.</p>
+
+                                <div class="schedule-detail-type">
+                                    <span class="schedule-detail-type-icon" id="scheduleDetailTypeIcon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <rect x="4.5" y="5" width="15" height="15" rx="2"></rect>
+                                            <path d="M8 3.5v3"></path>
+                                            <path d="M16 3.5v3"></path>
+                                            <path d="M4.5 10h15"></path>
+                                        </svg>
+                                    </span>
+                                    <div>
+                                        <small>Event Type</small>
+                                        <strong id="scheduleDetailTypeLabel">-</strong>
+                                    </div>
+                                </div>
+
+                                <div class="schedule-detail-block">
+                                    <h5>Time &amp; Date</h5>
+                                    <p id="scheduleDetailTime">-</p>
+                                </div>
+
+                                <div class="schedule-detail-block">
+                                    <h5>Description</h5>
+                                    <p id="scheduleDetailDescription">-</p>
+                                </div>
+
+                                <div class="schedule-detail-block">
+                                    <h5>Priority</h5>
+                                    <span class="schedule-priority-badge is-medium" id="scheduleDetailPriority">Medium</span>
+                                </div>
+
+                                <label class="schedule-complete-check">
+                                    <input type="checkbox" id="scheduleDetailComplete">
+                                    Mark as completed
+                                </label>
+
+                                <button type="button" class="schedule-reminder-btn" id="scheduleReminderBtn">
+                                    Save Reminder to Phone
+                                </button>
+                            </aside>
+                        </div>
+                    </section>
+                </section>
+
                 <section class="dashboard-view" id="dashboardHistoryView" hidden>
                     <section class="dashboard-card history-page-card" id="dashboard-history-view">
                         <div class="history-page-head">
@@ -806,6 +960,83 @@
         </div>
     </div>
 
+    <div class="schedule-modal" id="scheduleEventModal" hidden>
+        <div class="schedule-dialog" role="dialog" aria-modal="true" aria-labelledby="scheduleModalTitle">
+            <div class="schedule-dialog-head">
+                <h2 id="scheduleModalTitle">Add Event</h2>
+                <button type="button" class="schedule-close-btn" id="scheduleModalCloseBtn" aria-label="Close add event form">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M6 6l12 12"></path>
+                        <path d="M18 6l-12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <form id="scheduleEventForm" class="schedule-form" novalidate>
+                <label class="is-full">
+                    <span>Event Title</span>
+                    <input type="text" id="scheduleInputTitle" maxlength="90" placeholder="Facial treatment" required>
+                </label>
+
+                <label>
+                    <span>Event Type</span>
+                    <select id="scheduleInputType">
+                        <option value="scan">Scan</option>
+                        <option value="appointment">Appointment</option>
+                        <option value="reminder">Reminder</option>
+                        <option value="refill">Refill</option>
+                    </select>
+                </label>
+
+                <label>
+                    <span>Priority</span>
+                    <select id="scheduleInputPriority">
+                        <option value="high">High</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </label>
+
+                <label>
+                    <span>Date</span>
+                    <input type="date" id="scheduleInputDate" required>
+                </label>
+
+                <label>
+                    <span>Time</span>
+                    <input type="time" id="scheduleInputTime" required>
+                </label>
+
+                <label>
+                    <span>Reminder Before</span>
+                    <select id="scheduleInputReminder">
+                        <option value="10">10 minutes</option>
+                        <option value="30" selected>30 minutes</option>
+                        <option value="60">1 hour</option>
+                        <option value="120">2 hours</option>
+                    </select>
+                </label>
+
+                <label class="is-full">
+                    <span>Description</span>
+                    <textarea
+                        id="scheduleInputDescription"
+                        rows="3"
+                        maxlength="240"
+                        placeholder="Add context, clinic name, or what to remember."
+                    ></textarea>
+                </label>
+
+                <p class="schedule-form-error" id="scheduleFormError" role="alert" hidden></p>
+
+                <div class="schedule-form-actions">
+                    <button type="button" class="scan-secondary" id="scheduleModalCancelBtn">Cancel</button>
+                    <button type="submit" class="scan-primary">Save Event</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="guide-modal" id="dashboardGuideModal" hidden>
         <div class="guide-dialog" role="dialog" aria-modal="true" aria-label="Dashboard introduction">
             <div class="guide-progress-track" aria-hidden="true">
@@ -1051,6 +1282,6 @@
     </div>
 
     <script src="{{ url_for('static', filename='js/auth-toast.js', v='20260223-auth-toast') }}" defer></script>
-    <script type="module" src="{{ url_for('static', filename='js/upload.js', v='20260226-phase5-modules') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/upload.js', v='20260226-schedule-module') }}"></script>
 </body>
 </html>
