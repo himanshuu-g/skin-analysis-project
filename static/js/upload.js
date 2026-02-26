@@ -14,6 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const cameraStatus = document.getElementById("cameraStatus");
     const cameraCloseBtn = document.getElementById("cameraCloseBtn");
     const cameraCancelBtn = document.getElementById("cameraCancelBtn");
+    const cameraRotateBtn = document.getElementById("cameraRotateBtn");
     const cameraTakeBtn = document.getElementById("cameraTakeBtn");
     const removeBtn = document.getElementById("removeBtn");
     const retakeBtn = document.getElementById("retakeBtn");
@@ -104,6 +105,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let selectedFile = null;
     let cameraStream = null;
     let cameraIsOpening = false;
+    let cameraFacingMode = "environment";
 
     const safeSessionStorage = {
         get(key) {
@@ -1998,6 +2000,13 @@ document.addEventListener("DOMContentLoaded", () => {
         cameraStatus.classList.toggle("is-error", Boolean(text) && isError);
     };
 
+    const setCameraRotateVisible = (isVisible) => {
+        if (!cameraRotateBtn) {
+            return;
+        }
+        cameraRotateBtn.hidden = !isVisible;
+    };
+
     const stopCameraStream = () => {
         if (cameraStream && typeof cameraStream.getTracks === "function") {
             cameraStream.getTracks().forEach((track) => {
@@ -2020,6 +2029,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 cameraVideo.srcObject = null;
             }
         }
+        setCameraRotateVisible(false);
     };
 
     const setCameraModalOpen = (isOpen) => {
@@ -2062,7 +2072,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 audio: false,
                 video: {
                     facingMode: {
-                        ideal: "environment",
+                        ideal: cameraFacingMode,
                     },
                     width: {
                         ideal: 1280,
@@ -2077,6 +2087,7 @@ document.addEventListener("DOMContentLoaded", () => {
             cameraVideo.srcObject = stream;
             await cameraVideo.play();
             setCameraStatus("");
+            setCameraRotateVisible(true);
             return true;
         } catch (error) {
             closeCameraModal();
@@ -2092,6 +2103,31 @@ document.addEventListener("DOMContentLoaded", () => {
         } finally {
             cameraIsOpening = false;
         }
+    };
+
+    const rotateInlineCamera = async () => {
+        if (!cameraModal || cameraModal.hidden || cameraIsOpening) {
+            return;
+        }
+
+        const previousFacingMode = cameraFacingMode;
+        const nextFacingMode = previousFacingMode === "environment" ? "user" : "environment";
+        cameraFacingMode = nextFacingMode;
+
+        setCameraStatus("Switching camera...");
+        const opened = await openInlineCamera();
+        if (opened) {
+            return;
+        }
+
+        cameraFacingMode = previousFacingMode;
+        const restored = await openInlineCamera();
+        if (!restored) {
+            closeCameraModal();
+            showError("Could not switch camera. Please try again.");
+            return;
+        }
+        showError("Could not switch camera. Your current camera will continue.");
     };
 
     const captureInlineCameraImage = async () => {
@@ -2223,6 +2259,14 @@ document.addEventListener("DOMContentLoaded", () => {
         cameraTakeBtn.addEventListener("click", () => {
             captureInlineCameraImage().catch(() => {
                 showError("Could not capture photo. Please try again.");
+            });
+        });
+    }
+
+    if (cameraRotateBtn) {
+        cameraRotateBtn.addEventListener("click", () => {
+            rotateInlineCamera().catch(() => {
+                showError("Could not rotate camera. Please try again.");
             });
         });
     }
