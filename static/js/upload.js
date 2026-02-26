@@ -16,6 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const cameraCancelBtn = document.getElementById("cameraCancelBtn");
     const cameraTakeBtn = document.getElementById("cameraTakeBtn");
     const removeBtn = document.getElementById("removeBtn");
+    const retakeBtn = document.getElementById("retakeBtn");
     const loadingDiv = document.getElementById("loadingDiv");
     const csrfTokenInput = uploadForm?.querySelector("input[name='csrf_token']");
     const uploadError = document.getElementById("uploadError");
@@ -27,10 +28,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const historyList = document.getElementById("historyList");
     const historyToggleBtn = document.getElementById("historyToggleBtn");
     const historyFallbackImage = historyList?.dataset.fallbackImage || "/static/images/home/dashboard-default.jpg";
+    const dashboardShell = document.querySelector(".dashboard-shell");
+    const sidebarCollapseBtn = document.getElementById("sidebarCollapseBtn");
     const dashboardHomeView = document.getElementById("dashboardHomeView");
+    const dashboardRoutineView = document.getElementById("dashboardRoutineView");
     const dashboardHistoryView = document.getElementById("dashboardHistoryView");
     const dashboardSettingsView = document.getElementById("dashboardSettingsView");
     const sidebarDashboardLink = document.getElementById("sidebarDashboardLink");
+    const sidebarNewScanLink = document.getElementById("sidebarNewScanLink");
+    const sidebarRoutineLink = document.getElementById("sidebarRoutineLink");
+    const sidebarScheduleLink = document.getElementById("sidebarScheduleLink");
     const sidebarHistoryLink = document.getElementById("sidebarHistoryLink");
     const sidebarSettingsLink = document.getElementById("sidebarSettingsLink");
     const dashboardViewLinks = Array.from(document.querySelectorAll("[data-dashboard-view]"));
@@ -46,6 +53,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const drySignal = document.getElementById("drySignal");
     const normalSignal = document.getElementById("normalSignal");
     const oilySignal = document.getElementById("oilySignal");
+    const metricLatestConfidence = document.getElementById("metricLatestConfidence");
+    const metricLatestInference = document.getElementById("metricLatestInference");
+    const metricLatestModelVersion = document.getElementById("metricLatestModelVersion");
+    const metricTrendDelta = document.getElementById("metricTrendDelta");
+    const metricTrendMeta = document.getElementById("metricTrendMeta");
+    const metricsTrendArea = document.getElementById("metricsTrendArea");
+    const metricsTrendLine = document.getElementById("metricsTrendLine");
+    const metricsTrendPoints = document.getElementById("metricsTrendPoints");
+    const metricDistDryBar = document.getElementById("metricDistDryBar");
+    const metricDistNormalBar = document.getElementById("metricDistNormalBar");
+    const metricDistOilyBar = document.getElementById("metricDistOilyBar");
+    const metricDistDryValue = document.getElementById("metricDistDryValue");
+    const metricDistNormalValue = document.getElementById("metricDistNormalValue");
+    const metricDistOilyValue = document.getElementById("metricDistOilyValue");
     const deleteConfirmModal = document.getElementById("deleteConfirmModal");
     const deleteConfirmMessage = document.getElementById("deleteConfirmMessage");
     const deleteConfirmCancel = document.getElementById("deleteConfirmCancel");
@@ -64,7 +85,21 @@ document.addEventListener("DOMContentLoaded", () => {
     const guideSkipBtn = document.getElementById("guideSkipBtn");
     const guideSeenKey = "skinanalysis_guide_seen";
     const guidePendingKey = "skinanalysis_guide_pending";
+    const sidebarCollapseKey = "skinanalysis_sidebar_collapsed";
     const guideServerTrigger = document.body?.dataset.guideTrigger === "1";
+    const settingsInlineTabs = Array.from(document.querySelectorAll("[data-settings-tab]"));
+    const settingsInlinePanels = Array.from(document.querySelectorAll("[data-settings-panel]"));
+    const routinePage = document.getElementById("dashboard-routine-view");
+    const routineSkinButtons = Array.from(document.querySelectorAll("[data-routine-skin-btn]"));
+    const routinePeriodButtons = Array.from(document.querySelectorAll("[data-routine-period-btn]"));
+    const routineStepGrid = document.getElementById("routineStepGrid");
+    const routineProgressDone = document.getElementById("routineProgressDone");
+    const routineProgressTotal = document.getElementById("routineProgressTotal");
+    const routineProgressBadge = document.getElementById("routineProgressBadge");
+    const routineMorningDone = document.getElementById("routineMorningDone");
+    const routineMorningTotal = document.getElementById("routineMorningTotal");
+    const routineEveningDone = document.getElementById("routineEveningDone");
+    const routineEveningTotal = document.getElementById("routineEveningTotal");
     let activeGuideStep = 0;
     let selectedFile = null;
     let cameraStream = null;
@@ -92,6 +127,143 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
         },
+    };
+
+    const safeLocalStorage = {
+        get(key) {
+            try {
+                return window.localStorage.getItem(key);
+            } catch (_err) {
+                return null;
+            }
+        },
+        set(key, value) {
+            try {
+                window.localStorage.setItem(key, value);
+            } catch (_err) {
+                return;
+            }
+        },
+    };
+
+    const routineCompletionKey = "skinanalysis_routine_completion";
+    const routineCatalog = {
+        oily: {
+            label: "Oily Skin",
+            morning: [
+                { title: "Cleanser", description: "Foaming gel cleanser", tip: "Gently massage for 60 seconds" },
+                { title: "Toner", description: "Salicylic acid toner", tip: "Use a cotton pad, sweep upward" },
+                { title: "Serum", description: "Niacinamide 10% serum", tip: "Apply 3-4 drops, pat gently" },
+                { title: "Moisturizer", description: "Oil-free gel moisturizer", tip: "Use a thin layer, let absorb" },
+                { title: "Sunscreen", description: "SPF 50 matte finish", tip: "Reapply every 2 hours outdoors" },
+            ],
+            evening: [
+                { title: "Makeup Remove", description: "Micellar water cleanse", tip: "Wipe gently without friction" },
+                { title: "Cleanser", description: "Foaming cleanser refresh", tip: "Focus on oily zones and jawline" },
+                { title: "Toner", description: "BHA balancing toner", tip: "Use only on non-irritated skin" },
+                { title: "Serum", description: "Niacinamide serum layer", tip: "Use thin layer on full face" },
+                { title: "Night Gel", description: "Lightweight gel hydrator", tip: "Finish with a breathable layer" },
+            ],
+        },
+        normal: {
+            label: "Normal Skin",
+            morning: [
+                { title: "Cleanser", description: "Gentle daily cleanser", tip: "Rinse with lukewarm water" },
+                { title: "Vitamin C", description: "Brightening antioxidant serum", tip: "Use 2-3 drops before cream" },
+                { title: "Moisturizer", description: "Lightweight daily moisturizer", tip: "Press in, do not rub hard" },
+                { title: "Eye Cream", description: "Hydrating under-eye care", tip: "Tap with ring finger softly" },
+                { title: "Sunscreen", description: "SPF 30+ broad spectrum", tip: "Apply as final morning step" },
+            ],
+            evening: [
+                { title: "Makeup Remove", description: "Clean base with remover", tip: "Lift makeup before cleansing" },
+                { title: "Cleanser", description: "Balanced gel cleanser", tip: "Keep cleanse under 1 minute" },
+                { title: "Toner", description: "Hydrating toner", tip: "Pat lightly to calm skin" },
+                { title: "Retinol", description: "Low-strength retinol serum", tip: "Use every other night first" },
+                { title: "Night Cream", description: "Repair moisturizer", tip: "Seal hydration overnight" },
+            ],
+        },
+        dry: {
+            label: "Dry Skin",
+            morning: [
+                { title: "Cream Cleanser", description: "Non-foaming cream wash", tip: "Do not over-cleanse" },
+                { title: "Hydration Serum", description: "Hyaluronic acid serum", tip: "Apply on damp skin" },
+                { title: "Barrier Cream", description: "Ceramide-rich moisturizer", tip: "Layer generously on dry areas" },
+                { title: "Face Oil", description: "Squalane or nourishing oil", tip: "Use 2 drops to seal moisture" },
+                { title: "Sunscreen", description: "Hydrating SPF 50", tip: "Use full-face even indoors" },
+            ],
+            evening: [
+                { title: "Milk Cleanser", description: "Soft cleansing milk", tip: "Massage slowly, rinse lukewarm" },
+                { title: "Essence", description: "Hydrating essence toner", tip: "Use palms for better absorption" },
+                { title: "Repair Serum", description: "Ceramide support serum", tip: "Layer before moisturizer" },
+                { title: "Rich Cream", description: "Deep moisture night cream", tip: "Cover cheeks and forehead well" },
+                { title: "Overnight Balm", description: "Occlusive final layer", tip: "Use as lock-in step at night" },
+            ],
+        },
+    };
+    const routineSkinTypes = Object.keys(routineCatalog);
+    let routineActiveSkin = "oily";
+    let routineActivePeriod = "morning";
+    let routineCompletionState = {};
+
+    const setSidebarCollapsed = (isCollapsed) => {
+        if (!dashboardShell || !sidebarCollapseBtn) {
+            return;
+        }
+
+        dashboardShell.classList.toggle("sidebar-collapsed", isCollapsed);
+        sidebarCollapseBtn.setAttribute("aria-expanded", isCollapsed ? "false" : "true");
+        sidebarCollapseBtn.setAttribute("aria-label", isCollapsed ? "Expand menu" : "Collapse menu");
+    };
+
+    const initSidebarCollapse = () => {
+        if (!dashboardShell || !sidebarCollapseBtn) {
+            return;
+        }
+
+        const hasDesktopSidebar = window.matchMedia("(min-width: 1021px)").matches;
+        const isInitiallyCollapsed = hasDesktopSidebar && safeLocalStorage.get(sidebarCollapseKey) === "1";
+        setSidebarCollapsed(isInitiallyCollapsed);
+
+        sidebarCollapseBtn.addEventListener("click", () => {
+            const willCollapse = !dashboardShell.classList.contains("sidebar-collapsed");
+            setSidebarCollapsed(willCollapse);
+            safeLocalStorage.set(sidebarCollapseKey, willCollapse ? "1" : "0");
+        });
+    };
+
+    const setSettingsInlineTab = (requestedTab) => {
+        if (!settingsInlineTabs.length || !settingsInlinePanels.length) {
+            return;
+        }
+
+        const availableTabs = new Set(settingsInlinePanels.map((panel) => panel.dataset.settingsPanel));
+        const fallbackTab = settingsInlineTabs[0]?.dataset.settingsTab || "profile";
+        const activeTab = availableTabs.has(requestedTab) ? requestedTab : fallbackTab;
+
+        settingsInlineTabs.forEach((tab) => {
+            const isActive = tab.dataset.settingsTab === activeTab;
+            tab.classList.toggle("is-active", isActive);
+            tab.setAttribute("aria-selected", isActive ? "true" : "false");
+        });
+
+        settingsInlinePanels.forEach((panel) => {
+            const isActive = panel.dataset.settingsPanel === activeTab;
+            panel.classList.toggle("is-active", isActive);
+            panel.hidden = !isActive;
+        });
+    };
+
+    const initSettingsInlineTabs = () => {
+        if (!settingsInlineTabs.length || !settingsInlinePanels.length) {
+            return;
+        }
+
+        setSettingsInlineTab(settingsInlineTabs[0]?.dataset.settingsTab || "profile");
+        settingsInlineTabs.forEach((tab) => {
+            tab.addEventListener("click", () => {
+                setSettingsInlineTab(tab.dataset.settingsTab || "profile");
+            });
+        });
     };
 
     const isModalOpen = (modalNode) =>
@@ -240,6 +412,8 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     initGuideModal();
+    initSidebarCollapse();
+    initSettingsInlineTabs();
 
     if (!imageInput || !previewContainer || !previewImage || !analyzeBtn || !uploadArea || !uploadForm) {
         return;
@@ -368,6 +542,224 @@ document.addEventListener("DOMContentLoaded", () => {
         return Number.isFinite(numeric) ? numeric : null;
     };
 
+    const normalizeRoutineSkin = (value) => {
+        const normalized = String(value || "").trim().toLowerCase();
+        return routineSkinTypes.includes(normalized) ? normalized : null;
+    };
+
+    const buildEmptyRoutineCompletionState = () => {
+        const state = {};
+        routineSkinTypes.forEach((skin) => {
+            state[skin] = {
+                morning: new Array(routineCatalog[skin].morning.length).fill(false),
+                evening: new Array(routineCatalog[skin].evening.length).fill(false),
+            };
+        });
+        return state;
+    };
+
+    const sanitizeRoutineCompletionState = (raw) => {
+        const safeState = buildEmptyRoutineCompletionState();
+        if (!raw || typeof raw !== "object") {
+            return safeState;
+        }
+
+        routineSkinTypes.forEach((skin) => {
+            ["morning", "evening"].forEach((period) => {
+                const targetLength = routineCatalog[skin][period].length;
+                const source = Array.isArray(raw?.[skin]?.[period]) ? raw[skin][period] : [];
+                safeState[skin][period] = Array.from({ length: targetLength }, (_unused, index) => {
+                    return source[index] === true;
+                });
+            });
+        });
+
+        return safeState;
+    };
+
+    const loadRoutineCompletionState = () => {
+        const raw = safeLocalStorage.get(routineCompletionKey);
+        if (!raw) {
+            return buildEmptyRoutineCompletionState();
+        }
+
+        try {
+            return sanitizeRoutineCompletionState(JSON.parse(raw));
+        } catch (_err) {
+            return buildEmptyRoutineCompletionState();
+        }
+    };
+
+    const persistRoutineCompletionState = () => {
+        safeLocalStorage.set(routineCompletionKey, JSON.stringify(routineCompletionState));
+    };
+
+    const getRoutineSteps = (skin, period) => {
+        return Array.isArray(routineCatalog?.[skin]?.[period]) ? routineCatalog[skin][period] : [];
+    };
+
+    const getRoutineCompletedCount = (skin, period) => {
+        const steps = getRoutineSteps(skin, period);
+        const completionRow = Array.isArray(routineCompletionState?.[skin]?.[period])
+            ? routineCompletionState[skin][period]
+            : [];
+        return steps.reduce((count, _step, index) => count + (completionRow[index] === true ? 1 : 0), 0);
+    };
+
+    const getRoutineTotalCount = (skin, period) => getRoutineSteps(skin, period).length;
+
+    const renderRoutinePage = () => {
+        if (!routinePage || !routineStepGrid) {
+            return;
+        }
+
+        const normalizedSkin = normalizeRoutineSkin(routineActiveSkin);
+        routineActiveSkin = normalizedSkin || "oily";
+        routineActivePeriod = routineActivePeriod === "evening" ? "evening" : "morning";
+
+        const activeCatalog = routineCatalog[routineActiveSkin] || routineCatalog.oily;
+        const morningTotal = getRoutineTotalCount(routineActiveSkin, "morning");
+        const eveningTotal = getRoutineTotalCount(routineActiveSkin, "evening");
+        const morningDone = getRoutineCompletedCount(routineActiveSkin, "morning");
+        const eveningDone = getRoutineCompletedCount(routineActiveSkin, "evening");
+        const totalSteps = morningTotal + eveningTotal;
+        const totalDone = morningDone + eveningDone;
+
+        routineSkinButtons.forEach((button) => {
+            const isActive = button.dataset.routineSkinBtn === routineActiveSkin;
+            button.classList.toggle("is-active", isActive);
+            button.setAttribute("aria-selected", isActive ? "true" : "false");
+        });
+
+        routinePeriodButtons.forEach((button) => {
+            const isActive = button.dataset.routinePeriodBtn === routineActivePeriod;
+            button.classList.toggle("is-active", isActive);
+            button.setAttribute("aria-selected", isActive ? "true" : "false");
+        });
+
+        if (routineMorningDone) routineMorningDone.textContent = String(morningDone);
+        if (routineMorningTotal) routineMorningTotal.textContent = String(morningTotal);
+        if (routineEveningDone) routineEveningDone.textContent = String(eveningDone);
+        if (routineEveningTotal) routineEveningTotal.textContent = String(eveningTotal);
+        if (routineProgressDone) routineProgressDone.textContent = String(totalDone);
+        if (routineProgressTotal) routineProgressTotal.textContent = String(totalSteps);
+        if (routineProgressBadge) routineProgressBadge.textContent = `${activeCatalog.label} Routine`;
+
+        const steps = getRoutineSteps(routineActiveSkin, routineActivePeriod);
+        const completionRow = routineCompletionState?.[routineActiveSkin]?.[routineActivePeriod] || [];
+        routineStepGrid.innerHTML = "";
+
+        if (!steps.length) {
+            const emptyState = document.createElement("div");
+            emptyState.className = "routine-step-empty";
+            emptyState.textContent = "No routine steps available for this skin type yet.";
+            routineStepGrid.append(emptyState);
+            return;
+        }
+
+        steps.forEach((step, index) => {
+            const checkboxId = `routine-step-${routineActiveSkin}-${routineActivePeriod}-${index}`;
+            const isDone = completionRow[index] === true;
+
+            const card = document.createElement("article");
+            card.className = "routine-step-card";
+            if (isDone) {
+                card.classList.add("is-done");
+            }
+
+            const head = document.createElement("div");
+            head.className = "routine-step-head";
+
+            const number = document.createElement("span");
+            number.className = "routine-step-number";
+            number.textContent = String(index + 1).padStart(2, "0");
+
+            const checkLabel = document.createElement("label");
+            checkLabel.className = "routine-step-check";
+            checkLabel.setAttribute("for", checkboxId);
+
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.id = checkboxId;
+            checkbox.checked = isDone;
+            checkbox.setAttribute("aria-label", `Mark ${step.title} as complete`);
+            checkbox.addEventListener("change", () => {
+                if (!routineCompletionState?.[routineActiveSkin]?.[routineActivePeriod]) {
+                    return;
+                }
+                routineCompletionState[routineActiveSkin][routineActivePeriod][index] = checkbox.checked;
+                persistRoutineCompletionState();
+                renderRoutinePage();
+            });
+
+            checkLabel.append(checkbox);
+            head.append(number, checkLabel);
+
+            const title = document.createElement("h4");
+            title.className = "routine-step-title";
+            title.textContent = String(step.title || `Step ${index + 1}`);
+
+            const description = document.createElement("p");
+            description.className = "routine-step-description";
+            description.textContent = String(step.description || "");
+
+            const tip = document.createElement("p");
+            tip.className = "routine-step-tip";
+            tip.textContent = String(step.tip || "");
+
+            card.append(head, title, description, tip);
+            routineStepGrid.append(card);
+        });
+    };
+
+    const syncRoutineSkinFromStats = (stats) => {
+        const preferredSkin = normalizeRoutineSkin(
+            stats?.routine_skin_type_label || stats?.overall_health_skin_type_label
+        );
+        if (!preferredSkin || preferredSkin === routineActiveSkin) {
+            return;
+        }
+        routineActiveSkin = preferredSkin;
+        renderRoutinePage();
+    };
+
+    const initRoutinePage = () => {
+        if (!routinePage || !routineStepGrid) {
+            return;
+        }
+
+        routineCompletionState = loadRoutineCompletionState();
+        const defaultRoutineSkin = normalizeRoutineSkin(routinePage.dataset.defaultRoutineSkin);
+        if (defaultRoutineSkin) {
+            routineActiveSkin = defaultRoutineSkin;
+        }
+
+        routineSkinButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                const nextSkin = normalizeRoutineSkin(button.dataset.routineSkinBtn);
+                if (!nextSkin || nextSkin === routineActiveSkin) {
+                    return;
+                }
+                routineActiveSkin = nextSkin;
+                routineActivePeriod = "morning";
+                renderRoutinePage();
+            });
+        });
+
+        routinePeriodButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                const nextPeriod = button.dataset.routinePeriodBtn === "evening" ? "evening" : "morning";
+                if (nextPeriod === routineActivePeriod) {
+                    return;
+                }
+                routineActivePeriod = nextPeriod;
+                renderRoutinePage();
+            });
+        });
+
+        renderRoutinePage();
+    };
+
     const resolveHistoryStatus = (skinType) => {
         const normalized = String(skinType || "").trim().toLowerCase();
         if (normalized === "normal") {
@@ -430,6 +822,151 @@ document.addEventListener("DOMContentLoaded", () => {
         return Math.max(0, Math.min(100, score));
     };
 
+    const renderTrendChart = (scores) => {
+        if (!metricsTrendArea || !metricsTrendLine || !metricsTrendPoints) {
+            return;
+        }
+
+        const chartWidth = 260;
+        const chartHeight = 90;
+        const padding = 8;
+        const baselineY = chartHeight - padding;
+
+        if (!Array.isArray(scores) || scores.length === 0) {
+            metricsTrendArea.setAttribute("d", "");
+            metricsTrendLine.setAttribute("d", "");
+            metricsTrendPoints.innerHTML = "";
+            if (metricTrendMeta) {
+                metricTrendMeta.textContent = "No scan trend data yet.";
+            }
+            if (metricTrendDelta) {
+                metricTrendDelta.textContent = "Baseline";
+                metricTrendDelta.classList.remove("is-up", "is-down");
+                metricTrendDelta.classList.add("is-neutral");
+            }
+            return;
+        }
+
+        const normalizedScores = scores.map((value) => clampScore(value));
+        const denominator = Math.max(normalizedScores.length - 1, 1);
+        const points = normalizedScores.map((value, index) => {
+            const x = padding + (index / denominator) * (chartWidth - padding * 2);
+            const y = baselineY - (value / 100) * (chartHeight - padding * 2);
+            return { x, y, value };
+        });
+
+        const linePath = points
+            .map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+            .join(" ");
+        const areaPath = `${linePath} L${points[points.length - 1].x.toFixed(2)} ${baselineY.toFixed(2)} L${points[0].x.toFixed(2)} ${baselineY.toFixed(2)} Z`;
+
+        metricsTrendLine.setAttribute("d", linePath);
+        metricsTrendArea.setAttribute("d", areaPath);
+        metricsTrendPoints.innerHTML = points
+            .map(
+                (point) =>
+                    `<circle class="metrics-trend-point" cx="${point.x.toFixed(2)}" cy="${point.y.toFixed(2)}" r="2.4"></circle>`
+            )
+            .join("");
+
+        const latestScore = points[points.length - 1]?.value;
+        const previousScore = points[points.length - 2]?.value;
+        if (metricTrendDelta) {
+            metricTrendDelta.classList.remove("is-up", "is-down", "is-neutral");
+            if (!Number.isFinite(latestScore) || !Number.isFinite(previousScore)) {
+                metricTrendDelta.textContent = "Baseline";
+                metricTrendDelta.classList.add("is-neutral");
+            } else {
+                const delta = Math.round((latestScore - previousScore) * 10) / 10;
+                if (Math.abs(delta) < 0.1) {
+                    metricTrendDelta.textContent = "No change";
+                    metricTrendDelta.classList.add("is-neutral");
+                } else if (delta > 0) {
+                    metricTrendDelta.textContent = `+${formatScore(delta)}`;
+                    metricTrendDelta.classList.add("is-up");
+                } else {
+                    metricTrendDelta.textContent = formatScore(delta);
+                    metricTrendDelta.classList.add("is-down");
+                }
+            }
+        }
+
+        if (metricTrendMeta) {
+            metricTrendMeta.textContent = `Latest confidence ${formatScore(latestScore)}%`;
+        }
+    };
+
+    const renderSkinDistribution = (results) => {
+        const fillTargets = [
+            { key: "dry", bar: metricDistDryBar, value: metricDistDryValue },
+            { key: "normal", bar: metricDistNormalBar, value: metricDistNormalValue },
+            { key: "oily", bar: metricDistOilyBar, value: metricDistOilyValue },
+        ];
+
+        const safeResults = Array.isArray(results) ? results : [];
+        const totals = { dry: 0, normal: 0, oily: 0 };
+        safeResults.forEach((item) => {
+            const skin = String(item?.skin_type || "").trim().toLowerCase();
+            if (skin in totals) {
+                totals[skin] += 1;
+            }
+        });
+
+        const totalCount = safeResults.length;
+        fillTargets.forEach(({ key, bar, value }) => {
+            const percent = totalCount > 0 ? (totals[key] / totalCount) * 100 : 0;
+            if (bar) {
+                bar.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+            }
+            if (value) {
+                value.textContent = `${formatScore(percent)}%`;
+            }
+        });
+    };
+
+    const refreshTrendMetrics = async () => {
+        if (
+            !metricsTrendArea &&
+            !metricsTrendLine &&
+            !metricsTrendPoints &&
+            !metricDistDryBar &&
+            !metricDistNormalBar &&
+            !metricDistOilyBar
+        ) {
+            return;
+        }
+
+        try {
+            const response = await fetch("/api/results?limit=30", {
+                method: "GET",
+                credentials: "same-origin",
+                headers: {
+                    Accept: "application/json",
+                },
+            });
+            if (!response.ok) {
+                throw new Error("Unable to load trend metrics.");
+            }
+
+            const payload = await response.json();
+            const results = Array.isArray(payload?.results) ? payload.results : [];
+
+            const latestTwelveScores = results
+                .slice(0, 12)
+                .map((item) => clampScore(item?.confidence))
+                .reverse();
+
+            renderTrendChart(latestTwelveScores);
+            renderSkinDistribution(results.slice(0, 30));
+        } catch (_err) {
+            renderTrendChart([]);
+            renderSkinDistribution([]);
+            if (metricTrendMeta) {
+                metricTrendMeta.textContent = "Unable to load trend data.";
+            }
+        }
+    };
+
     const updateDashboardStats = (stats) => {
         if (!stats || typeof stats !== "object") {
             return;
@@ -485,16 +1022,73 @@ document.addEventListener("DOMContentLoaded", () => {
         if (oilySignal) {
             oilySignal.textContent = formatPercent(stats.oily_signal);
         }
+
+        if (metricLatestConfidence) {
+            metricLatestConfidence.textContent = String(stats.latest_confidence_display || "0%");
+        }
+
+        if (metricLatestInference) {
+            metricLatestInference.textContent = String(stats.latest_inference_display || "n/a");
+        }
+
+        if (metricLatestModelVersion) {
+            metricLatestModelVersion.textContent = String(stats.latest_model_version || "n/a");
+        }
+
+        syncRoutineSkinFromStats(stats);
     };
 
-    const setDashboardView = (view) => {
-        if (!dashboardHomeView || !dashboardHistoryView || !dashboardSettingsView) {
+    const sidebarPrimaryLinks = [
+        sidebarDashboardLink,
+        sidebarNewScanLink,
+        sidebarRoutineLink,
+        sidebarScheduleLink,
+        sidebarHistoryLink,
+        sidebarSettingsLink,
+    ].filter(Boolean);
+
+    const setActiveSidebarLink = (activeLink) => {
+        const safeActiveLink = sidebarPrimaryLinks.includes(activeLink) ? activeLink : null;
+        sidebarPrimaryLinks.forEach((link) => {
+            link.classList.toggle("is-active", link === safeActiveLink);
+        });
+    };
+
+    const resolveActiveSidebarLinkFromHash = () => {
+        const hash = window.location.hash.toLowerCase();
+        if (hash === "#uploadform") {
+            return sidebarNewScanLink || sidebarDashboardLink;
+        }
+        if (hash === "#dashboard-routine" || hash === "#dashboard-routine-view") {
+            return sidebarRoutineLink || sidebarDashboardLink;
+        }
+        if (hash === "#dashboard-schedule") {
+            return sidebarScheduleLink || sidebarDashboardLink;
+        }
+        if (hash === "#dashboard-settings") {
+            return sidebarSettingsLink || sidebarDashboardLink;
+        }
+        if (hash === "#dashboard-history-view" || hash.startsWith("#dashboard-history")) {
+            return sidebarHistoryLink || sidebarDashboardLink;
+        }
+        return sidebarDashboardLink || null;
+    };
+
+    const setDashboardView = (view, options = {}) => {
+        if (!dashboardHomeView || !dashboardRoutineView || !dashboardHistoryView || !dashboardSettingsView) {
             return;
         }
 
-        const normalizedView = view === "history" || view === "settings" ? view : "home";
+        const activeLinkFromOptions =
+            options && options.activeLink && sidebarPrimaryLinks.includes(options.activeLink)
+                ? options.activeLink
+                : null;
+
+        const normalizedView =
+            view === "routine" || view === "history" || view === "settings" ? view : "home";
         const viewMap = {
             home: dashboardHomeView,
+            routine: dashboardRoutineView,
             history: dashboardHistoryView,
             settings: dashboardSettingsView,
         };
@@ -505,17 +1099,7 @@ document.addEventListener("DOMContentLoaded", () => {
             node.classList.toggle("is-active", isActive);
         });
 
-        const linkMap = {
-            home: sidebarDashboardLink,
-            history: sidebarHistoryLink,
-            settings: sidebarSettingsLink,
-        };
-        Object.entries(linkMap).forEach(([key, node]) => {
-            if (!node) {
-                return;
-            }
-            node.classList.toggle("is-active", normalizedView === key);
-        });
+        setActiveSidebarLink(activeLinkFromOptions || resolveActiveSidebarLinkFromHash());
 
         if (normalizedView === "history") {
             const historyAnchor = document.getElementById("dashboard-history-view");
@@ -527,6 +1111,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const resolveDashboardViewFromHash = () => {
         const hash = window.location.hash.toLowerCase();
+        if (hash === "#dashboard-routine" || hash === "#dashboard-routine-view") {
+            return "routine";
+        }
         if (hash === "#dashboard-settings") {
             return "settings";
         }
@@ -674,6 +1261,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 refreshHistoryTrends();
                 ensureHistoryEmptyState();
                 refreshHistoryCollapseState();
+                refreshTrendMetrics().catch(() => {
+                    return;
+                });
             } catch (err) {
                 const message = err instanceof Error ? err.message : "Unable to delete history entry.";
                 showError(message);
@@ -1563,6 +2153,7 @@ document.addEventListener("DOMContentLoaded", () => {
         analyzeBtn.style.display = "none";
     }
 
+    initRoutinePage();
     setDashboardView(resolveDashboardViewFromHash());
     window.addEventListener("hashchange", () => {
         setDashboardView(resolveDashboardViewFromHash());
@@ -1570,8 +2161,12 @@ document.addEventListener("DOMContentLoaded", () => {
     dashboardViewLinks.forEach((link) => {
         link.addEventListener("click", () => {
             const requestedView = String(link.dataset.dashboardView || "").toLowerCase();
-            const view = requestedView === "history" || requestedView === "settings" ? requestedView : "home";
-            setDashboardView(view);
+            const view =
+                requestedView === "routine" || requestedView === "history" || requestedView === "settings"
+                    ? requestedView
+                    : "home";
+            const activeLink = link.classList.contains("sidebar-link") ? link : null;
+            setDashboardView(view, { activeLink });
         });
     });
 
@@ -1580,6 +2175,9 @@ document.addEventListener("DOMContentLoaded", () => {
     refreshHistoryTrends();
     ensureHistoryEmptyState();
     refreshHistoryCollapseState();
+    refreshTrendMetrics().catch(() => {
+        return;
+    });
     if (analysisCard && analysisResult && !analysisResult.hidden) {
         analysisCard.classList.add("has-result");
     }
@@ -1661,6 +2259,12 @@ document.addEventListener("DOMContentLoaded", () => {
         removeBtn.addEventListener("click", resetPreview);
     }
 
+    if (retakeBtn && removeBtn) {
+        retakeBtn.addEventListener("click", () => {
+            removeBtn.click();
+        });
+    }
+
     uploadArea.addEventListener("dragover", (event) => {
         event.preventDefault();
         uploadArea.classList.add("dragover");
@@ -1701,6 +2305,9 @@ document.addEventListener("DOMContentLoaded", () => {
             renderAnalysis(analysis);
             appendHistoryItem(analysis);
             updateDashboardStats(analysis.dashboard_stats);
+            refreshTrendMetrics().catch(() => {
+                return;
+            });
         } catch (error) {
             if (error.status === 401) {
                 window.location.href = "/login";

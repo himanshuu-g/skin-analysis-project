@@ -81,16 +81,16 @@
 
                 <dl class="hero-stats">
                     <div class="stat-item">
-                        <dt>50K+</dt>
+                        <dt>{{ home_stats.total_scans_value }}</dt>
                         <dd>Scans Completed</dd>
                     </div>
                     <div class="stat-item">
-                        <dt>98%</dt>
-                        <dd>Accuracy Rate</dd>
+                        <dt>{{ home_stats.avg_confidence_value }}</dt>
+                        <dd>Avg Confidence</dd>
                     </div>
                     <div class="stat-item">
-                        <dt>4.9</dt>
-                        <dd>User Rating</dd>
+                        <dt>{{ home_stats.users_value }}</dt>
+                        <dd>Registered Users</dd>
                     </div>
                 </dl>
             </div>

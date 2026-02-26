@@ -8,11 +8,6 @@
     </div>
 
     <div class="auth-header-tools">
-        <label class="auth-search" aria-label="Search">
-            <span class="auth-search-icon">&#128269;</span>
-            <input type="search" placeholder="Search..." autocomplete="off">
-        </label>
-
         <a class="auth-bell" href="{{ url_for('settings') }}" aria-label="Notifications">
             <span class="auth-bell-icon">&#128276;</span>
             <span class="auth-bell-badge">{{ auth_notification_count }}</span>

@@ -1,30 +1,25 @@
 <footer class="app-footer">
-    <div class="footer-columns">
-        <section class="footer-column">
-            <h3>PRODUCT</h3>
-            <a href="#">Facial Cleansers</a>
-            <a href="#">Body Cleansers</a>
-            <a href="#">Facial Moisturisers</a>
-            <a href="#">Body Moisturiser</a>
-            <a href="#">Baby Skincare</a>
-            <a href="#">Sunscreens</a>
-        </section>
+    <div class="app-footer-inner">
+        <a class="app-footer-brand" href="{{ url_for('home') }}">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4.3 13.2c0-5 4-9 9-9h5.5v5.5c0 5-4 9-9 9H4.3z"></path>
+                <path d="M6.3 16.5c3.7-.2 6.8-2.1 9.1-5.3"></path>
+            </svg>
+            <span>SkinAnalysis AI</span>
+        </a>
 
-        <section class="footer-column">
-            <h3>LEARN</h3>
-            <a href="#">Contact Us</a>
-            <a href="#">Where to Buy</a>
-            <a href="#">FAQ</a>
-            <a href="#">Why Cetaphil</a>
-        </section>
+        <nav class="app-footer-nav" aria-label="Footer navigation">
+            <a href="{{ url_for('home') }}">Home</a>
+            {% if session.get('user_id') %}
+            <a href="{{ url_for('analyzer') }}">Dashboard</a>
+            <a href="{{ url_for('analyzer', _anchor='dashboard-history-view') }}">History</a>
+            <a href="{{ url_for('settings') }}">Settings</a>
+            {% else %}
+            <a href="{{ url_for('login') }}">Login</a>
+            <a href="{{ url_for('signup') }}">Sign Up</a>
+            {% endif %}
+        </nav>
 
-        <section class="footer-column">
-            <h3>LEGAL</h3>
-            <a href="#">Terms &amp; Conditions</a>
-            <a href="#">Privacy Policy</a>
-            <a href="#">Cookie Policy</a>
-        </section>
+        <p class="app-footer-copy">2026 SkinAnalysis AI. All rights reserved.</p>
     </div>
-
-    <a class="footer-buy-tab" href="#">BUY NOW ></a>
 </footer>

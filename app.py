@@ -240,6 +240,61 @@ def _format_score_value(score):
     return f"{rounded:.1f}"
 
 
+def _format_compact_count(value):
+    count = int(max(0, int(value)))
+    if count >= 1_000_000:
+        return f"{count / 1_000_000:.1f}M+"
+    if count >= 1_000:
+        return f"{count / 1_000:.1f}K+"
+    return str(count)
+
+
+def _build_home_stats():
+    stats = {
+        "total_scans_value": "0",
+        "avg_confidence_value": "0%",
+        "users_value": "0",
+    }
+
+    conn = get_db()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT
+                COUNT(*) AS total_scans,
+                AVG(confidence) AS avg_confidence
+            FROM results
+            """
+        )
+        results_row = cursor.fetchone()
+        total_scans = int(results_row["total_scans"] or 0) if results_row else 0
+        avg_confidence = results_row["avg_confidence"] if results_row else None
+
+        cursor.execute(
+            """
+            SELECT COUNT(*) AS total_users
+            FROM users
+            """
+        )
+        users_row = cursor.fetchone()
+        total_users = int(users_row["total_users"] or 0) if users_row else 0
+    finally:
+        conn.close()
+
+    stats["total_scans_value"] = _format_compact_count(total_scans)
+    stats["users_value"] = _format_compact_count(total_users)
+
+    try:
+        avg_confidence_value = float(avg_confidence)
+        avg_confidence_value = max(0.0, min(100.0, avg_confidence_value))
+        stats["avg_confidence_value"] = f"{_format_score_value(avg_confidence_value)}%"
+    except (TypeError, ValueError):
+        stats["avg_confidence_value"] = "0%"
+
+    return stats
+
+
 def _extract_routine_steps(raw_steps, max_steps=4):
     cleaned_steps = []
     for raw_step in raw_steps or []:
@@ -278,6 +333,9 @@ def _build_dashboard_stats(user_id):
         "routine_morning_steps": [],
         "routine_evening_steps": [],
         "routine_empty_message": "Start your first analysis to get personalized skincare steps.",
+        "latest_confidence_display": "0%",
+        "latest_inference_display": "n/a",
+        "latest_model_version": "n/a",
     }
 
     conn = get_db()
@@ -285,7 +343,13 @@ def _build_dashboard_stats(user_id):
         cursor = conn.cursor()
         cursor.execute(
             """
-            SELECT confidence, created_at, skin_type, class_probabilities_json
+            SELECT
+                confidence,
+                created_at,
+                skin_type,
+                class_probabilities_json,
+                model_version,
+                inference_ms
             FROM results
             WHERE user_id = ?
             ORDER BY id DESC
@@ -378,6 +442,18 @@ def _build_dashboard_stats(user_id):
         clamped_score = max(0.0, min(100.0, latest_confidence_value))
         stats["overall_health_score"] = round(clamped_score, 1)
         stats["overall_health_score_label"] = _format_score_value(clamped_score)
+        stats["latest_confidence_display"] = f"{_format_score_value(clamped_score)}%"
+
+    latest_model_version = str(latest_row["model_version"] or "").strip()
+    if latest_model_version:
+        stats["latest_model_version"] = latest_model_version
+
+    try:
+        inference_ms_value = float(latest_row["inference_ms"])
+        if inference_ms_value >= 0:
+            stats["latest_inference_display"] = f"{_format_score_value(inference_ms_value)} ms"
+    except (TypeError, ValueError):
+        stats["latest_inference_display"] = "n/a"
 
     latest_skin_type = str(latest_row["skin_type"] or "").strip().lower()
     if latest_skin_type:
@@ -685,7 +761,11 @@ def request_entity_too_large(_err):
 def home():
     if session.get("user_id"):
         return redirect(url_for("analyzer"))
-    return render_template("home.html", auth_notice=_pop_auth_notice())
+    return render_template(
+        "home.html",
+        auth_notice=_pop_auth_notice(),
+        home_stats=_build_home_stats(),
+    )
 
 
 @app.route("/signup", methods=["GET", "POST"])

@@ -373,64 +373,91 @@ body.questionnaire-page .page-shell {
 
 .app-footer {
     margin-top: 28px;
-    background: #07256f;
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
-    padding: clamp(34px, 7vw, 88px) clamp(16px, 6vw, 108px) clamp(24px, 6vw, 72px);
+    background: linear-gradient(135deg, #062153 0%, #0b2f7b 54%, #08489a 100%);
+    border-top: 1px solid rgba(255, 255, 255, 0.16);
+    padding: clamp(30px, 6vw, 64px) clamp(16px, 6vw, 88px);
     position: relative;
     overflow: hidden;
 }
 
-.footer-columns {
+.app-footer::before {
+    content: "";
+    position: absolute;
+    inset: -20% auto auto -12%;
+    width: clamp(180px, 24vw, 340px);
+    height: clamp(180px, 24vw, 340px);
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0) 72%);
+    pointer-events: none;
+}
+
+.app-footer-inner {
+    width: min(1120px, 100%);
+    margin: 0 auto;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-    gap: clamp(22px, 4vw, 56px);
-    align-items: start;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 14px clamp(20px, 3vw, 44px);
+    position: relative;
+    z-index: 1;
 }
 
-.footer-column {
-    min-width: 0;
-    text-align: left;
-}
-
-.footer-column h3 {
+.app-footer-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
     color: #ffffff;
-    font-size: clamp(0.96rem, 2.1vw, 1.26rem);
-    letter-spacing: 0.5px;
-    font-weight: 800;
-    margin-bottom: 12px;
+    text-decoration: none;
+    font-family: "Playfair Display", serif;
+    font-weight: 700;
+    font-size: clamp(1rem, 1.8vw, 1.24rem);
+    letter-spacing: 0.25px;
 }
 
-.footer-column a {
-    display: block;
-    color: #ffffff;
+.app-footer-brand svg {
+    width: 28px;
+    height: 28px;
+    fill: rgba(255, 255, 255, 0.18);
+    stroke: #ffffff;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
+}
+
+.app-footer-nav {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px clamp(12px, 2vw, 22px);
+}
+
+.app-footer-nav a {
+    color: rgba(255, 255, 255, 0.9);
     text-decoration: none;
     font-weight: 600;
-    font-size: clamp(0.88rem, 1.8vw, 1.02rem);
-    line-height: 1.45;
-    overflow-wrap: anywhere;
-    margin-bottom: 4px;
+    font-size: clamp(0.9rem, 1.35vw, 1rem);
+    border-bottom: 1px solid transparent;
+    transition: color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 
-.footer-column a:hover {
+.app-footer-nav a:hover {
     color: #ffffff;
-    text-decoration: underline;
+    border-bottom-color: rgba(255, 255, 255, 0.72);
+    transform: translateY(-1px);
 }
 
-.footer-buy-tab {
-    position: absolute;
-    right: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    text-decoration: none;
-    background: #0b91ff;
-    color: #ffffff;
-    padding: 14px 10px;
-    border-radius: 8px 8px 0 0;
-    font-weight: 800;
-    letter-spacing: 0.6px;
-    font-size: 0.8rem;
+.app-footer-nav a:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.6);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.app-footer-copy {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: clamp(0.8rem, 1.2vw, 0.92rem);
+    justify-self: end;
+    white-space: nowrap;
 }
 
 @media (max-width: 920px) {
@@ -452,6 +479,7 @@ body.questionnaire-page .page-shell {
         width: 100%;
         margin-left: 0;
         gap: 10px;
+        justify-content: flex-end;
     }
 
     .auth-search {
@@ -465,21 +493,19 @@ body.questionnaire-page .page-shell {
     }
 
     .app-footer {
-        padding: clamp(30px, 9vw, 56px) clamp(16px, 6vw, 28px);
+        padding: clamp(28px, 9vw, 48px) clamp(14px, 6vw, 24px);
     }
 
-    .footer-columns {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    .app-footer-inner {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        text-align: center;
+        gap: 12px;
     }
 
-    .footer-buy-tab {
-        position: static;
-        transform: none;
-        writing-mode: horizontal-tb;
-        border-radius: 10px;
-        display: inline-flex;
-        margin-top: 20px;
-        padding: 10px 14px;
+    .app-footer-copy {
+        justify-self: center;
+        white-space: normal;
     }
 }
 
@@ -518,6 +544,16 @@ body.questionnaire-page .page-shell {
         padding: 12px;
     }
 
+    .auth-greeting {
+        font-size: clamp(1.28rem, 6.2vw, 1.62rem);
+        line-height: 1.15;
+    }
+
+    .auth-date {
+        gap: 6px;
+        font-size: clamp(0.84rem, 3.4vw, 0.95rem);
+    }
+
     .brand {
         flex-basis: 100%;
     }
@@ -533,6 +569,13 @@ body.questionnaire-page .page-shell {
 
     .auth-header-tools {
         flex-wrap: wrap;
+        justify-content: flex-start;
+    }
+
+    .auth-bell,
+    .auth-avatar {
+        width: 38px;
+        height: 38px;
     }
 
     .auth-search {
@@ -544,20 +587,24 @@ body.questionnaire-page .page-shell {
         margin-top: 22px;
     }
 
-    .footer-columns {
-        grid-template-columns: 1fr;
-        gap: 18px;
-        text-align: center;
-    }
-
-    .footer-column {
-        text-align: center;
+    .app-footer-nav {
+        justify-content: center;
+        gap: 10px 14px;
     }
 }
 
 @media (max-width: 400px) {
-    .footer-buy-tab {
-        width: 100%;
-        justify-content: center;
+    .auth-header {
+        padding: 10px;
+    }
+
+    .auth-greeting {
+        font-size: clamp(1.14rem, 6vw, 1.36rem);
+    }
+
+    .app-footer-nav {
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
     }
 }
