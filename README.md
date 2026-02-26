@@ -1,18 +1,20 @@
 # SkinAnalysis AI
 
 AI-powered skin type analyzer built with Flask + TensorFlow.  
-The app predicts facial skin type (`dry`, `normal`, `oily`), generates Grad-CAM explainability output, and provides tailored skincare guidance with user history tracking.
+The app predicts facial skin type (`dry`, `normal`, `oily`), generates Grad-CAM explainability output, and provides tailored skincare guidance with user history and synced schedule tracking.
 
 ## Key Features
 
-- Secure authentication (signup/login/logout)
+- Secure authentication (`signup`, `login`, `logout`)
 - Session-based access control with CSRF protection
-- Image upload validation (type, MIME, content, size)
-- AI inference with confidence and class probabilities
-- Grad-CAM explainability image generation
-- Dashboard with analyzer, history, and settings views
-- Per-user scan history, detail view, and delete support
-- Dockerized deployment
+- Image upload validation (extension, MIME, real content, size)
+- AI inference with confidence + class probabilities
+- Grad-CAM explainability generation
+- Dashboard with analyzer, routine, schedule, history, and settings views
+- Per-user scan history with detail and delete support
+- Per-user schedule events synced via backend DB across devices/accounts
+- Reminder export (`.ics`) for phone calendar/alarm import
+- Dockerized runtime with Gunicorn
 
 ## Tech Stack
 
@@ -20,7 +22,7 @@ The app predicts facial skin type (`dry`, `normal`, `oily`), generates Grad-CAM 
 - ML: TensorFlow/Keras, OpenCV, NumPy, scikit-learn
 - Image processing: Pillow, OpenCV, MediaPipe
 - Database: SQLite (`database/skin_care.db`)
-- Frontend: Jinja templates + JavaScript + CSS
+- Frontend: Jinja templates + modular JavaScript + CSS
 
 ## Project Structure
 
@@ -33,7 +35,8 @@ The app predicts facial skin type (`dry`, `normal`, `oily`), generates Grad-CAM 
 |-- database/
 |   |-- db.py
 |   |-- auth.py
-|   `-- save_result.py
+|   |-- save_result.py
+|   `-- schedule_events.py
 |-- preprocessing/
 |   |-- image_preprocess.py
 |   `-- gradcam.py
@@ -47,6 +50,12 @@ The app predicts facial skin type (`dry`, `normal`, `oily`), generates Grad-CAM 
 |-- static/
 |   |-- css/
 |   `-- js/
+|       |-- upload.js
+|       |-- dashboard.js
+|       |-- history.js
+|       |-- analysis.js
+|       |-- camera.js
+|       `-- schedule.js
 |-- prepare_dataset.py
 |-- train.py
 `-- evaluate_model.py
@@ -103,9 +112,16 @@ Open: `http://127.0.0.1:5000`
 - `DELETE /api/schedule/events/<event_id>`
 - `POST /api/analyze` (multipart form-data with `image`)
 
-For protected `POST` endpoints, send CSRF token in:
+For protected mutation endpoints (`POST`, `PATCH`, `DELETE`), send CSRF token in:
 - `X-CSRF-Token` header, or
 - `csrf_token` form field
+
+## Schedule Sync Notes
+
+- Schedule events are stored per user in `schedule_events` table.
+- Events are fetched and mutated through authenticated API endpoints.
+- UI filter/selection state remains local, but event data is server-backed.
+- Any logged-in device for the same account can see the same events.
 
 ## Web Routes
 
@@ -159,11 +175,13 @@ Open: `http://localhost:5000`
 - Max upload size: `5 MB`
 - Allowed image extensions: `.jpg`, `.jpeg`, `.png`, `.bmp`, `.webp`
 
-## Current Known Limitation
+## Current Known Limitations
 
 - Model accuracy can be improved further, especially for the `oily` class.
+- SQLite works well for single-instance deployment; production multi-instance scale should use managed relational DB.
 
 ## Project Report
 
 Detailed technical report is available at:
 - `PROJECT_REPORT.md`
+- `PROJECT_REPORT.pdf`

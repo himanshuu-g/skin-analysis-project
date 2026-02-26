@@ -1,7 +1,7 @@
 # SkinAnalysis AI Skin Care Analyzer
 ## Project Report and Technical Summary
 
-Prepared on: February 21, 2026  
+Prepared on: February 26, 2026  
 Project type: Full-stack AI web application  
 Purpose: Internship submission and college project documentation
 
@@ -43,11 +43,14 @@ This project solves that by providing:
 7. Persisted per-user analysis records in SQLite with history CRUD.
 8. Delivered a responsive dashboard with in-page multi-view UX.
 9. Added data cleaning/splitting, training, and evaluation scripts.
-10. Containerized deployment with Docker and Gunicorn.
+10. Added account-scoped schedule management with backend CRUD APIs.
+11. Containerized deployment with Docker and Gunicorn.
 
 ---
 
 ## 4. End-to-End System Workflow
+
+### 4.1 Analysis Workflow
 
 1. User authenticates in the app.
 2. User uploads a face image from dashboard analyzer.
@@ -57,6 +60,15 @@ This project solves that by providing:
 6. Grad-CAM heatmap is generated for explainability.
 7. Result and metadata are stored in the `results` table.
 8. Dashboard updates analysis output and history records.
+
+### 4.2 Schedule Workflow
+
+1. User opens schedule view from dashboard sidebar.
+2. Frontend fetches events from `GET /api/schedule/events`.
+3. Create/update/delete actions call schedule mutation APIs with CSRF token.
+4. Backend validates payload and enforces user ownership.
+5. Records are persisted in `schedule_events` table and returned to UI.
+6. Updated schedule is rendered consistently across devices for same account.
 
 ---
 
@@ -85,6 +97,7 @@ Flask App (app.py)
           database/db.py
           database/auth.py
           database/save_result.py
+          database/schedule_events.py
           database/skin_care.db
 ```
 
@@ -110,7 +123,7 @@ Dependencies from `requirements.txt`:
 - `app.py`  
   Core Flask app, route handlers, CSRF/session security, upload/inference flow, dashboard/history integration.
 - `database/`  
-  DB initialization, schema resilience, auth queries, result save/fetch/delete logic.
+  DB initialization, schema resilience, auth queries, result save/fetch/delete logic, schedule event CRUD.
 - `preprocessing/`  
   Image preprocessing, Grad-CAM generation, optional face/skin extraction helpers.
 - `model/`  
@@ -121,6 +134,8 @@ Dependencies from `requirements.txt`:
   UI pages for home, dashboard, auth, settings, and result rendering.
 - `static/js/upload.js`  
   Upload API calls, progress UI, result rendering, history updates, view switching.
+- `static/js/schedule.js`  
+  Schedule event rendering, filters/details, backend API sync, and reminder export (`.ics`).
 - `static/css/`  
   Responsive styling and dashboard visual system.
 - `prepare_dataset.py`  
@@ -163,6 +178,14 @@ For every scan, backend records:
 - Model version
 - Original image path and Grad-CAM path
 
+### 8.4 Schedule API Validation and Ownership Controls
+
+- Schedule event type is validated against allowed enum (`scan`, `appointment`, `reminder`, `refill`)
+- Priority is validated against allowed enum (`low`, `medium`, `high`)
+- Datetime, title length, description length, and reminder bounds are validated server-side
+- Mutating schedule APIs require valid CSRF token
+- All schedule reads/writes/deletes are scoped by authenticated `user_id`
+
 ---
 
 ## 9. Route and API Inventory
@@ -188,6 +211,10 @@ For every scan, backend records:
 - `GET /api/auth/me`
 - `POST /api/auth/logout`
 - `GET /api/results?limit=...`
+- `GET /api/schedule/events`
+- `POST /api/schedule/events`
+- `PATCH /api/schedule/events/<event_id>`
+- `DELETE /api/schedule/events/<event_id>`
 - `POST /api/analyze`
 
 ---
@@ -204,17 +231,24 @@ For every scan, backend records:
   - `is_low_confidence`, `inference_ms`, `created_at`
 - `products`
   - seed recommendations per skin type
+- `schedule_events`
+  - `id`, `user_id`, `title`, `event_type`, `priority`, `event_datetime`
+  - `description`, `reminder_minutes`, `is_completed`, `created_at`, `updated_at`
 
 Schema resiliency in `database/db.py`:
 - Adds missing `results` columns at startup if needed
 - Ensures index `idx_results_user_id_created_at`
+- Ensures `schedule_events` table and indexes:
+  - `idx_schedule_events_user_datetime`
+  - `idx_schedule_events_user_created_at`
 
-### 10.2 Live SQLite Snapshot (Verified on February 21, 2026)
+### 10.2 Live SQLite Snapshot (Verified on February 26, 2026)
 
-- `users`: 8
-- `results`: 40
+- `users`: 3
+- `results`: 41
 - `products`: 9
-- Result date range: `2026-02-06 07:32:04` to `2026-02-21T15:47:31+05:30`
+- `schedule_events`: 1
+- Result date range: `2026-02-06 07:32:04` to `2026-02-26T10:56:49+05:30`
 
 ---
 
@@ -309,8 +343,9 @@ Legacy-compatible helpers remain in:
 
 - Landing page with app overview and auth access
 - Login/signup forms with clear validation feedback
-- Dashboard with analyzer, history, and settings views
+- Dashboard with analyzer, routine, schedule, history, and settings views
 - In-page history rendering without full page switch
+- In-page schedule management with add/edit/complete/delete actions
 - Result detail and history record deletion actions
 
 ### 13.2 Client-Side Logic (`static/js/upload.js`)
@@ -318,10 +353,17 @@ Legacy-compatible helpers remain in:
 - Asynchronous upload requests with progress indicator
 - Dynamic result rendering after inference
 - History insertion, trend calculations, and deletion modal
-- Hash-based dashboard view switching (`home`, `history`, `settings`)
+- Hash-based dashboard view switching (`home`, `routine`, `schedule`, `history`, `settings`)
 - CSRF token fetch/refresh integration for protected API calls
 
-### 13.3 Styling System
+### 13.3 Schedule Client Module (`static/js/schedule.js`)
+
+- Fetches account-scoped schedule events via REST API
+- Performs create/update/delete with CSRF-protected calls
+- Renders summary cards, filters, event list, and detail panel
+- Exports event reminders as `.ics` files for phone calendar import
+
+### 13.4 Styling System
 
 - `static/css/base.css`: shared shell/layout system
 - `static/css/home.css`: landing page
@@ -362,10 +404,11 @@ Responsive behavior is implemented for desktop, tablet, and mobile breakpoints.
 5. Implemented reliable Grad-CAM explainability generation.
 6. Built user-scoped history management with secure ownership checks.
 7. Implemented dashboard-first UX with in-page navigation and async updates.
-8. Added structured skincare recommendation engine integration.
-9. Developed dataset cleaning and deterministic splitting workflow.
-10. Built transfer-learning training and evaluation scripts.
-11. Containerized the application for reproducible deployment.
+8. Added backend-synced schedule management across devices/accounts.
+9. Added structured skincare recommendation engine integration.
+10. Developed dataset cleaning and deterministic splitting workflow.
+11. Built transfer-learning training and evaluation scripts.
+12. Containerized the application for reproducible deployment.
 
 ---
 
@@ -386,6 +429,9 @@ Responsive behavior is implemented for desktop, tablet, and mobile breakpoints.
 - Challenge: Maintaining dashboard continuity while switching functional views.  
   Resolution: Implemented hash-driven in-page view switching and dynamic rendering in JS.
 
+- Challenge: Keeping schedule data consistent across devices and sessions.  
+  Resolution: Replaced browser-local event persistence with authenticated backend CRUD APIs scoped by `user_id`.
+
 ---
 
 ## 17. Current Limitations
@@ -393,6 +439,7 @@ Responsive behavior is implemented for desktop, tablet, and mobile breakpoints.
 - Model test accuracy is currently moderate (`51.97%`), especially weaker on `oily` recall.
 - Automated tests (unit/integration/e2e) are limited and should be expanded.
 - Advanced production controls (rate limiting, centralized logging, secrets manager) can be strengthened.
+- Schedule reminders are exported as `.ics`; native push notifications are not implemented server-side.
 - Some legacy templates/utilities still exist and can be consolidated.
 
 ---
@@ -414,14 +461,15 @@ Responsive behavior is implemented for desktop, tablet, and mobile breakpoints.
 3. Upload validation and trust boundaries for image inputs.
 4. Explainability strategy and Grad-CAM fallback reliability.
 5. Data cleaning pipeline and reproducibility choices.
-6. Training/evaluation interpretation and optimization strategy.
-7. Full-stack deployment tradeoffs (local vs containerized).
+6. Schedule sync design (local UI state vs backend event persistence).
+7. Training/evaluation interpretation and optimization strategy.
+8. Full-stack deployment tradeoffs (local vs containerized).
 
 ---
 
 ## 20. Conclusion
 
-SkinAnalysis AI demonstrates a complete AI product lifecycle implementation: data preparation, model training, explainable inference, secure full-stack integration, persistent user history, and deployable delivery.  
+SkinAnalysis AI demonstrates a complete AI product lifecycle implementation: data preparation, model training, explainable inference, secure full-stack integration, persistent user history, backend-synced scheduling, and deployable delivery.  
 The project is ready for internship review and academic presentation, with a clear roadmap for performance and production maturity improvements.
 
 ---
