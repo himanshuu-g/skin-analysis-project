@@ -3486,17 +3486,23 @@ body.modal-open {
         padding: 14px 16px;
     }
 
+    .dashboard-header-copy {
+        width: 100%;
+    }
+
     .dashboard-greeting {
-        font-size: clamp(1.7rem, 4.8vw, 2.35rem);
+        font-size: clamp(1.56rem, 4.8vw, 2.1rem);
     }
 
     .dashboard-date {
-        font-size: 1rem;
+        font-size: 0.95rem;
+        margin-top: 6px;
     }
 
     .dashboard-content {
         overflow: visible;
         padding: 14px 16px 20px;
+        gap: 14px;
     }
 
     .card-head h3,
@@ -3518,8 +3524,28 @@ body.modal-open {
         gap: 10px;
     }
 
+    .dashboard-bell,
+    .dashboard-avatar {
+        width: 38px;
+        height: 38px;
+    }
+
     .dashboard-stats {
         grid-template-columns: 1fr;
+    }
+
+    .stat-card {
+        min-height: 0;
+        padding: 14px;
+    }
+
+    .stat-card h2 {
+        font-size: 1.96rem;
+    }
+
+    .stat-card p,
+    .stat-card small {
+        font-size: 0.9rem;
     }
 
     .dashboard-grid {
@@ -3550,6 +3576,14 @@ body.modal-open {
         gap: 10px;
     }
 
+    .routine-progress-copy h4 {
+        font-size: 1.22rem;
+    }
+
+    .routine-progress-badge {
+        white-space: normal;
+    }
+
     .routine-period-tabs {
         grid-template-columns: 1fr;
     }
@@ -3557,6 +3591,25 @@ body.modal-open {
     .routine-period-btn {
         justify-content: flex-start;
         padding: 0 12px;
+        min-height: 40px;
+        font-size: 0.95rem;
+    }
+
+    .routine-step-card {
+        min-height: 0;
+        padding: 12px 12px;
+    }
+
+    .routine-step-title {
+        font-size: 1.42rem;
+    }
+
+    .routine-step-description {
+        font-size: 0.93rem;
+    }
+
+    .routine-step-tip {
+        font-size: 0.85rem;
     }
 
     .prescription-title-row,
@@ -3713,6 +3766,31 @@ body.modal-open {
         justify-content: flex-end;
     }
 
+    .dashboard-header {
+        padding: 12px 12px 10px;
+        gap: 10px;
+    }
+
+    .dashboard-greeting {
+        font-size: clamp(1.34rem, 6vw, 1.62rem);
+    }
+
+    .dashboard-date {
+        font-size: 0.86rem;
+    }
+
+    .dashboard-bell,
+    .dashboard-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+    }
+
+    .dashboard-content {
+        padding: 12px 12px 18px;
+        gap: 12px;
+    }
+
     .stat-card,
     .score-card,
     .scan-card,
@@ -3736,7 +3814,15 @@ body.modal-open {
     }
 
     .routine-step-title {
-        font-size: 1.6rem;
+        font-size: 1.24rem;
+    }
+
+    .routine-step-description {
+        font-size: 0.9rem;
+    }
+
+    .routine-step-tip {
+        font-size: 0.82rem;
     }
 
     .prescription-report {

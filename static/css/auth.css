@@ -96,8 +96,20 @@ body.auth-page {
 }
 
 @media (max-width: 640px) {
+    .auth-main {
+        padding: 12px 0 18px;
+    }
+
+    .auth-wrapper {
+        width: 100%;
+    }
+
     .auth-card {
         padding: 20px 16px;
+    }
+
+    .auth-card h1 {
+        font-size: clamp(1.4rem, 7vw, 1.8rem);
     }
 
     .auth-form button {

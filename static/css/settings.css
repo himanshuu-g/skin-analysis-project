@@ -128,4 +128,37 @@
     .settings-form {
         grid-template-columns: 1fr;
     }
+
+    .settings-head {
+        flex-wrap: wrap;
+    }
+
+    .settings-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .settings-back-btn {
+        min-width: 0;
+    }
+}
+
+@media (max-width: 520px) {
+    .settings-page-card {
+        padding: 14px;
+    }
+
+    .settings-panel {
+        padding: 14px;
+        border-radius: 14px;
+    }
+
+    .settings-head h2 {
+        font-size: clamp(1.5rem, 7vw, 2rem);
+    }
+
+    .settings-panel h3 {
+        font-size: clamp(1.26rem, 6vw, 1.68rem);
+    }
 }
