@@ -239,13 +239,18 @@
                                 <p class="card-kicker">Quick Scan</p>
                                 <h3>New Analysis</h3>
                             </div>
-                            <span class="scan-icon-badge">
+                            <button
+                                type="button"
+                                id="cameraCaptureBtn"
+                                class="scan-icon-badge scan-icon-btn"
+                                aria-label="Capture photo using camera"
+                            >
                                 <svg viewBox="0 0 24 24" aria-hidden="true">
                                     <rect x="4" y="7" width="16" height="12" rx="2"></rect>
                                     <path d="M9 7l1.4-2h3.2L15 7"></path>
                                     <circle cx="12" cy="13" r="3"></circle>
                                 </svg>
-                            </span>
+                            </button>
                         </div>
 
                         <form
@@ -268,7 +273,15 @@
                                     <p>Drop image here or click to upload</p>
                                     <button type="button" id="choosePhotoBtn">Choose Photo</button>
                                 </div>
-                                <input type="file" id="imageInput" name="image" accept="image/*" required>
+                                <input type="file" id="imageInput" name="image" accept="image/*">
+                                <input
+                                    type="file"
+                                    id="cameraInput"
+                                    accept="image/*"
+                                    capture="environment"
+                                    tabindex="-1"
+                                    aria-hidden="true"
+                                >
                             </div>
 
                             <div class="preview-container" id="previewContainer">
@@ -536,6 +549,29 @@
             <div class="confirm-actions">
                 <button type="button" class="confirm-btn confirm-cancel" id="deleteConfirmCancel">Cancel</button>
                 <button type="button" class="confirm-btn confirm-delete" id="deleteConfirmAccept">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="camera-modal" id="cameraModal" hidden>
+        <div class="camera-dialog" role="dialog" aria-modal="true" aria-labelledby="cameraModalTitle">
+            <div class="camera-dialog-head">
+                <h2 id="cameraModalTitle">Capture Photo</h2>
+                <button type="button" class="camera-close-btn" id="cameraCloseBtn" aria-label="Close camera">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M6 6l12 12"></path>
+                        <path d="M18 6l-12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <p class="camera-dialog-subtitle">Keep your face centered in clear lighting, then tap capture.</p>
+            <div class="camera-preview-shell">
+                <video id="cameraVideo" class="camera-video" autoplay muted playsinline></video>
+                <p id="cameraStatus" class="camera-status" hidden></p>
+            </div>
+            <div class="camera-actions">
+                <button type="button" class="scan-secondary" id="cameraCancelBtn">Cancel</button>
+                <button type="button" class="scan-primary" id="cameraTakeBtn">Capture Photo</button>
             </div>
         </div>
     </div>
@@ -809,6 +845,6 @@
         })();
     </script>
     <script src="{{ url_for('static', filename='js/auth-toast.js', v='20260223-auth-toast') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/upload.js', v='20260223-login-popup') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/upload.js', v='20260226-live-camera') }}" defer></script>
 </body>
 </html>

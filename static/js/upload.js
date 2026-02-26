@@ -7,6 +7,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const uploadForm = document.getElementById("uploadForm");
     const loadingOverlay = document.getElementById("loadingOverlay");
     const choosePhotoBtn = document.getElementById("choosePhotoBtn");
+    const cameraInput = document.getElementById("cameraInput");
+    const cameraCaptureBtn = document.getElementById("cameraCaptureBtn");
+    const cameraModal = document.getElementById("cameraModal");
+    const cameraVideo = document.getElementById("cameraVideo");
+    const cameraStatus = document.getElementById("cameraStatus");
+    const cameraCloseBtn = document.getElementById("cameraCloseBtn");
+    const cameraCancelBtn = document.getElementById("cameraCancelBtn");
+    const cameraTakeBtn = document.getElementById("cameraTakeBtn");
     const removeBtn = document.getElementById("removeBtn");
     const loadingDiv = document.getElementById("loadingDiv");
     const csrfTokenInput = uploadForm?.querySelector("input[name='csrf_token']");
@@ -58,6 +66,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const guidePendingKey = "skinanalysis_guide_pending";
     const guideServerTrigger = document.body?.dataset.guideTrigger === "1";
     let activeGuideStep = 0;
+    let selectedFile = null;
+    let cameraStream = null;
+    let cameraIsOpening = false;
 
     const safeSessionStorage = {
         get(key) {
@@ -83,6 +94,14 @@ document.addEventListener("DOMContentLoaded", () => {
         },
     };
 
+    const isModalOpen = (modalNode) =>
+        Boolean(modalNode) && modalNode.classList.contains("is-open") && !modalNode.hidden;
+
+    const syncBodyModalState = () => {
+        const hasOpenModal = isModalOpen(guideModal) || isModalOpen(deleteConfirmModal) || isModalOpen(cameraModal);
+        document.body.classList.toggle("modal-open", hasOpenModal);
+    };
+
     const setGuideModalOpen = (isOpen) => {
         if (!guideModal) {
             return;
@@ -90,16 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         guideModal.hidden = !isOpen;
         guideModal.classList.toggle("is-open", isOpen);
-
-        const isDeleteModalOpen =
-            Boolean(deleteConfirmModal) &&
-            deleteConfirmModal.classList.contains("is-open") &&
-            !deleteConfirmModal.hidden;
-        if (isOpen || isDeleteModalOpen) {
-            document.body.classList.add("modal-open");
-        } else {
-            document.body.classList.remove("modal-open");
-        }
+        syncBodyModalState();
     };
 
     const initGuideModal = () => {
@@ -235,6 +245,9 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
+    // Validation is handled in JS so camera-captured files can submit without native file-input constraints.
+    imageInput.required = false;
+
     const showError = (message) => {
         if (!uploadError) {
             return;
@@ -293,13 +306,13 @@ document.addEventListener("DOMContentLoaded", () => {
         deleteConfirmMessage.textContent = fallbackMessage;
         deleteConfirmModal.hidden = false;
         deleteConfirmModal.classList.add("is-open");
-        document.body.classList.add("modal-open");
+        syncBodyModalState();
 
         return new Promise((resolve) => {
             const cleanup = () => {
                 deleteConfirmModal.classList.remove("is-open");
                 deleteConfirmModal.hidden = true;
-                document.body.classList.remove("modal-open");
+                syncBodyModalState();
                 deleteConfirmModal.removeEventListener("click", onBackdropClick);
                 document.removeEventListener("keydown", onKeyDown);
                 deleteConfirmCancel.removeEventListener("click", onCancel);
@@ -794,69 +807,294 @@ document.addEventListener("DOMContentLoaded", () => {
             .replaceAll("'", "&#039;");
     };
 
-    const listItemsHtml = (items) => {
+    const listItemsHtml = (items, itemClass = "") => {
         const safeItems = Array.isArray(items) ? items : [];
-        return safeItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+        const classAttr = itemClass ? ` class="${itemClass}"` : "";
+        return safeItems.map((item) => `<li${classAttr}>${escapeHtml(item)}</li>`).join("");
     };
 
-    const getProbabilityText = (classProbabilities) => {
-        const entries = Object.entries(classProbabilities || {});
-        if (entries.length === 0) {
-            return "Class probabilities are not available.";
+    const formatDateLabel = (date) =>
+        date.toLocaleDateString("en-US", {
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+        });
+
+    const formatTimeLabel = (date) =>
+        date.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+        });
+
+    const formatCompactDateLabel = (date) =>
+        date.toLocaleDateString("en-US", {
+            month: "2-digit",
+            day: "2-digit",
+            year: "2-digit",
+        });
+
+    const formatScoreLabel = (value) => {
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric)) {
+            return "0";
         }
-        return entries
-            .map(([label, value]) => `${escapeHtml(label)}: ${(Number(value) * 100).toFixed(1)}%`)
-            .join(" | ");
+        const rounded = Math.round(numeric * 10) / 10;
+        return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
     };
 
-    const renderRecommendations = (recommendations) => {
-        const data = recommendations || {};
-        const products = Array.isArray(data.products) ? data.products : [];
-        const morningSteps = data.routine?.morning || [];
-        const eveningSteps = data.routine?.evening || [];
+    const formatPercentLabel = (value) => `${formatScoreLabel(value)}%`;
 
-        const productCards = products
+    const toPercentValue = (value) => {
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric)) {
+            return null;
+        }
+        const normalized = numeric <= 1 ? numeric * 100 : numeric;
+        return Math.max(0, Math.min(100, normalized));
+    };
+
+    const buildReportId = (analysis, issuedAt) => {
+        const year = issuedAt.getFullYear();
+        const month = String(issuedAt.getMonth() + 1).padStart(2, "0");
+        const day = String(issuedAt.getDate()).padStart(2, "0");
+        const scanId = Number(analysis.result_id);
+        const suffix = Number.isFinite(scanId)
+            ? `L${String(scanId).padStart(4, "0")}`
+            : `L${String(Math.floor(Math.random() * 9000) + 1000)}`;
+        return `DS-${year}${month}${day}-${suffix}`;
+    };
+
+    const buildFileBaseName = (analysis, issuedAt) => {
+        const rawSkin = String(analysis.skin_type || "skin")
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+        const skinSlug = rawSkin || "skin";
+        const dateStamp = `${issuedAt.getFullYear()}${String(issuedAt.getMonth() + 1).padStart(2, "0")}${String(
+            issuedAt.getDate()
+        ).padStart(2, "0")}`;
+        return `skin-prescription-${skinSlug}-${dateStamp}`;
+    };
+
+    const resolveSkinSummary = (skinType) => {
+        const normalized = String(skinType || "").trim().toLowerCase();
+        if (normalized === "dry") {
+            return "Low Sebum Production";
+        }
+        if (normalized === "oily") {
+            return "Excess Sebum Production";
+        }
+        if (normalized === "normal") {
+            return "Balanced Sebum Levels";
+        }
+        return "Needs Further Assessment";
+    };
+
+    const getProbabilityRows = (analysis) => {
+        const labels = ["dry", "normal", "oily"];
+        const probabilityMap =
+            analysis.class_probabilities && typeof analysis.class_probabilities === "object"
+                ? analysis.class_probabilities
+                : {};
+        const hasProbabilityData = Object.keys(probabilityMap).length > 0;
+        const predictedSkin = String(analysis.skin_type || "").trim().toLowerCase();
+        const confidencePercent = Math.max(0, Math.min(100, Number(analysis.confidence) || 0));
+        const fallbackOther = Math.max(0, (100 - confidencePercent) / (labels.length - 1));
+
+        return labels.map((label) => {
+            let percent = toPercentValue(probabilityMap[label]);
+            if (percent === null) {
+                if (!hasProbabilityData) {
+                    percent = label === predictedSkin ? confidencePercent : fallbackOther;
+                } else {
+                    percent = 0;
+                }
+            }
+            return {
+                label: capitalize(label),
+                percent,
+            };
+        });
+    };
+
+    const renderProductCards = (products) => {
+        const safeProducts = Array.isArray(products) ? products : [];
+        if (safeProducts.length === 0) {
+            return '<p class="rx-products-empty">No product recommendations available for this scan.</p>';
+        }
+
+        return safeProducts
             .map(
                 (product) => `
-                <article class="analysis-product">
-                    <div class="analysis-product-head">
-                        <span class="analysis-product-category">${escapeHtml(product.category || "")}</span>
-                        <span class="analysis-product-price">${escapeHtml(product.price || "")}</span>
-                    </div>
-                    <div class="analysis-product-name">${escapeHtml(product.name || "")}</div>
-                    <p><strong>Why:</strong> ${escapeHtml(product.why || "")}</p>
-                    <p><strong>Alternative:</strong> ${escapeHtml(product.alternative || "")}</p>
-                </article>
-            `
+                    <article class="rx-product-card">
+                        <div class="rx-product-head">
+                            <span class="rx-product-category">${escapeHtml(product.category || "Product")}</span>
+                            <span class="rx-product-price">${escapeHtml(product.price || "Price unavailable")}</span>
+                        </div>
+                        <h6>${escapeHtml(product.name || "Recommended option")}</h6>
+                        <p><strong>Why:</strong> ${escapeHtml(product.why || "Matches your detected skin profile.")}</p>
+                        <p><strong>Alternative:</strong> ${escapeHtml(product.alternative || "Consult your dermatologist.")}</p>
+                    </article>
+                `
             )
             .join("");
+    };
 
-        return `
-            <p>${escapeHtml(data.description || "")}</p>
-            <div class="analysis-columns">
-                <section class="analysis-panel">
-                    <h3>Characteristics</h3>
-                    <ul>${listItemsHtml(data.characteristics || [])}</ul>
-                </section>
-                <section class="analysis-panel">
-                    <h3>DO's</h3>
-                    <ul>${listItemsHtml(data.dos || [])}</ul>
-                </section>
-                <section class="analysis-panel">
-                    <h3>DON'Ts</h3>
-                    <ul>${listItemsHtml(data.donts || [])}</ul>
-                </section>
-                <section class="analysis-panel">
-                    <h3>Morning Routine</h3>
-                    <ol>${listItemsHtml(morningSteps)}</ol>
-                </section>
-                <section class="analysis-panel">
-                    <h3>Evening Routine</h3>
-                    <ol>${listItemsHtml(eveningSteps)}</ol>
-                </section>
-            </div>
-            <div class="analysis-products">${productCards}</div>
-        `;
+    let exportLibrariesPromise = null;
+    const loadExternalScript = (src) =>
+        new Promise((resolve, reject) => {
+            const existing = document.querySelector(`script[src="${src}"]`);
+            if (existing) {
+                if (existing.dataset.loaded === "true") {
+                    resolve();
+                    return;
+                }
+                existing.addEventListener("load", () => resolve(), { once: true });
+                existing.addEventListener("error", () => reject(new Error(`Unable to load ${src}.`)), { once: true });
+                return;
+            }
+
+            const script = document.createElement("script");
+            script.src = src;
+            script.async = true;
+            script.addEventListener(
+                "load",
+                () => {
+                    script.dataset.loaded = "true";
+                    resolve();
+                },
+                { once: true }
+            );
+            script.addEventListener("error", () => reject(new Error(`Unable to load ${src}.`)), { once: true });
+            document.head.append(script);
+        });
+
+    const ensureExportLibraries = async () => {
+        if (typeof window.html2canvas === "function" && typeof window.jspdf?.jsPDF === "function") {
+            return;
+        }
+
+        if (!exportLibrariesPromise) {
+            exportLibrariesPromise = (async () => {
+                await loadExternalScript("https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js");
+                await loadExternalScript("https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js");
+            })().catch((error) => {
+                exportLibrariesPromise = null;
+                throw error;
+            });
+        }
+
+        await exportLibrariesPromise;
+    };
+
+    const capturePrescriptionCanvas = async (reportNode) => {
+        if (!reportNode) {
+            throw new Error("Prescription report is not available to export.");
+        }
+
+        await ensureExportLibraries();
+        if (typeof window.html2canvas !== "function") {
+            throw new Error("Image export is not available in this browser.");
+        }
+
+        return window.html2canvas(reportNode, {
+            backgroundColor: "#ffffff",
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            windowWidth: reportNode.scrollWidth,
+            windowHeight: reportNode.scrollHeight,
+        });
+    };
+
+    const savePrescriptionImage = async (reportNode, fileBaseName) => {
+        const canvas = await capturePrescriptionCanvas(reportNode);
+        const anchor = document.createElement("a");
+        anchor.href = canvas.toDataURL("image/png");
+        anchor.download = `${fileBaseName}.png`;
+        document.body.append(anchor);
+        anchor.click();
+        anchor.remove();
+    };
+
+    const downloadPrescriptionPdf = async (reportNode, fileBaseName) => {
+        const canvas = await capturePrescriptionCanvas(reportNode);
+        const JsPdf = window.jspdf?.jsPDF;
+        if (typeof JsPdf !== "function") {
+            throw new Error("PDF export is not available in this browser.");
+        }
+
+        const pdf = new JsPdf({
+            orientation: canvas.width > canvas.height ? "landscape" : "portrait",
+            unit: "px",
+            format: [canvas.width, canvas.height],
+            compress: true,
+        });
+        const imageData = canvas.toDataURL("image/png");
+        pdf.addImage(imageData, "PNG", 0, 0, canvas.width, canvas.height, undefined, "FAST");
+        pdf.save(`${fileBaseName}.pdf`);
+    };
+
+    const runPrescriptionAction = async (button, busyLabel, action) => {
+        if (!button) {
+            return;
+        }
+
+        const defaultLabel = button.dataset.defaultLabel || button.textContent || "";
+        button.dataset.defaultLabel = defaultLabel;
+        button.disabled = true;
+        button.classList.add("is-busy");
+        button.textContent = busyLabel;
+
+        try {
+            await action();
+        } finally {
+            button.disabled = false;
+            button.classList.remove("is-busy");
+            button.textContent = defaultLabel;
+        }
+    };
+
+    const bindPrescriptionActions = (analysis, issuedAt) => {
+        if (!analysisResult) {
+            return;
+        }
+
+        const reportNode = analysisResult.querySelector("#prescriptionReport");
+        if (!reportNode) {
+            return;
+        }
+
+        const fileBaseName = buildFileBaseName(analysis, issuedAt);
+        const actionButtons = Array.from(reportNode.querySelectorAll("[data-prescription-action]"));
+        actionButtons.forEach((button) => {
+            button.addEventListener("click", async () => {
+                const action = button.dataset.prescriptionAction || "";
+                try {
+                    if (action === "print") {
+                        window.print();
+                        return;
+                    }
+
+                    if (action === "pdf") {
+                        await runPrescriptionAction(button, "Preparing PDF...", async () => {
+                            await downloadPrescriptionPdf(reportNode, fileBaseName);
+                        });
+                        return;
+                    }
+
+                    if (action === "image") {
+                        await runPrescriptionAction(button, "Saving Image...", async () => {
+                            await savePrescriptionImage(reportNode, fileBaseName);
+                        });
+                    }
+                } catch (err) {
+                    const message = err instanceof Error ? err.message : "Unable to export prescription.";
+                    showError(message);
+                }
+            });
+        });
     };
 
     const renderAnalysis = (analysis) => {
@@ -865,32 +1103,183 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const safeAnalysis = analysis && typeof analysis === "object" ? analysis : {};
+        const issuedAt = new Date();
+        const recommendations =
+            safeAnalysis.recommendations && typeof safeAnalysis.recommendations === "object"
+                ? safeAnalysis.recommendations
+                : {};
+        const morningSteps = Array.isArray(recommendations.routine?.morning) ? recommendations.routine.morning : [];
+        const eveningSteps = Array.isArray(recommendations.routine?.evening) ? recommendations.routine.evening : [];
+        const dos = Array.isArray(recommendations.dos) ? recommendations.dos : [];
+        const donts = Array.isArray(recommendations.donts) ? recommendations.donts : [];
+        const products = Array.isArray(recommendations.products) ? recommendations.products : [];
+        const probabilityRows = getProbabilityRows(safeAnalysis);
 
+        const confidencePercent = Math.max(0, Math.min(100, Number(safeAnalysis.confidence) || 0));
+        const skinLabel = capitalize(safeAnalysis.skin_type || "unknown");
         const warningHtml = safeAnalysis.is_low_confidence
-            ? `<div class="analysis-warning">Low confidence prediction. Use a clear, front-facing image in good lighting for a more reliable result.</div>`
+            ? `
+                <div class="prescription-warning">
+                    Low confidence prediction. Use a clear, front-facing image in good lighting for a more reliable result.
+                </div>
+            `
             : "";
 
+        const morningItemsHtml = morningSteps.length
+            ? listItemsHtml(morningSteps, "rx-step")
+            : '<li class="rx-step is-empty">No morning routine provided for this scan.</li>';
+        const eveningItemsHtml = eveningSteps.length
+            ? listItemsHtml(eveningSteps, "rx-step")
+            : '<li class="rx-step is-empty">No evening routine provided for this scan.</li>';
+        const dosItemsHtml = dos.length
+            ? listItemsHtml(dos, "rx-note-item")
+            : '<li class="rx-note-item is-empty">No additional DO guidance provided.</li>';
+        const dontItemsHtml = donts.length
+            ? listItemsHtml(donts, "rx-note-item")
+            : '<li class="rx-note-item is-empty">No additional DON\'T guidance provided.</li>';
+        const probabilityRowsHtml = probabilityRows
+            .map(
+                (entry) => `
+                    <li>
+                        <span>${escapeHtml(entry.label)}</span>
+                        <strong>${formatPercentLabel(entry.percent)}</strong>
+                    </li>
+                `
+            )
+            .join("");
+
         analysisResult.innerHTML = `
-            <h2>Analysis Result</h2>
-            <div class="analysis-meta">
-                <div><strong>Skin Type:</strong> ${escapeHtml(safeAnalysis.skin_type || "unknown")}</div>
-                <div><strong>Confidence:</strong> ${Number(safeAnalysis.confidence || 0).toFixed(2)}%</div>
-                <div><strong>Model:</strong> ${escapeHtml(safeAnalysis.model_version || "n/a")}</div>
-                <div><strong>Inference Time:</strong> ${Number(safeAnalysis.inference_ms || 0).toFixed(2)} ms</div>
-            </div>
-            ${warningHtml}
-            <div class="analysis-probabilities">${getProbabilityText(safeAnalysis.class_probabilities)}</div>
-            <div class="analysis-images">
-                <div>
-                    <img src="${escapeHtml(safeAnalysis.image_url || "")}" alt="Uploaded image">
-                </div>
-                <div>
-                    <img src="${escapeHtml(safeAnalysis.gradcam_url || "")}" alt="Grad-CAM overlay">
-                </div>
-            </div>
-            ${renderRecommendations(safeAnalysis.recommendations)}
+            <article class="prescription-report" id="prescriptionReport">
+                <header class="prescription-header">
+                    <div class="prescription-topline">
+                        <span>${escapeHtml(`${formatCompactDateLabel(issuedAt)}, ${formatTimeLabel(issuedAt)}`)}</span>
+                        <span>DermaScan AI - Intelligent Skin Analysis</span>
+                    </div>
+                    <div class="prescription-title-row">
+                        <div>
+                            <h2>Skin Analysis Prescription</h2>
+                            <p>AI-generated dermatology assessment based on CNN image analysis.</p>
+                        </div>
+                        <div class="prescription-actions">
+                            <button type="button" class="prescription-action-btn" data-prescription-action="print">Print</button>
+                            <button type="button" class="prescription-action-btn" data-prescription-action="pdf">Download PDF</button>
+                            <button type="button" class="prescription-action-btn" data-prescription-action="image">Save Image</button>
+                        </div>
+                    </div>
+                </header>
+
+                <section class="prescription-clinic">
+                    <h3>DermaScan AI Clinic</h3>
+                    <p>Advanced Dermatological Analysis</p>
+                </section>
+
+                <section class="prescription-meta-grid">
+                    <div>
+                        <span>Report ID</span>
+                        <strong>${escapeHtml(buildReportId(safeAnalysis, issuedAt))}</strong>
+                    </div>
+                    <div>
+                        <span>Date</span>
+                        <strong>${escapeHtml(formatDateLabel(issuedAt))}</strong>
+                    </div>
+                    <div>
+                        <span>Time</span>
+                        <strong>${escapeHtml(formatTimeLabel(issuedAt))}</strong>
+                    </div>
+                    <div>
+                        <span>Status</span>
+                        <strong class="status-verified">Verified</strong>
+                    </div>
+                </section>
+
+                ${warningHtml}
+
+                <section class="prescription-section">
+                    <h4>Primary Diagnosis</h4>
+                    <div class="diagnosis-panel">
+                        <div class="diagnosis-image-grid">
+                            <figure class="diagnosis-image-card">
+                                <img src="${escapeHtml(safeAnalysis.image_url || "")}" alt="Submitted sample">
+                                <figcaption>Submitted Sample</figcaption>
+                            </figure>
+                            <figure class="diagnosis-image-card">
+                                <img src="${escapeHtml(safeAnalysis.gradcam_url || "")}" alt="AI focus heatmap">
+                                <figcaption>AI Focus Map</figcaption>
+                            </figure>
+                        </div>
+                        <div class="diagnosis-content">
+                            <div class="diagnosis-head">
+                                <div>
+                                    <p>Detected Skin Type</p>
+                                    <h5>${escapeHtml(`${skinLabel} Skin`)}</h5>
+                                    <small>${escapeHtml(resolveSkinSummary(skinLabel))}</small>
+                                </div>
+                                <span class="confidence-chip">${escapeHtml(formatPercentLabel(confidencePercent))} Confidence</span>
+                            </div>
+                            <p class="diagnosis-subhead">CNN Classification Scores</p>
+                            <ul class="diagnosis-score-list">
+                                ${probabilityRowsHtml}
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="prescription-section">
+                    <h4>Prescribed Skincare Routine</h4>
+                    <div class="rx-card">
+                        <div class="rx-title-row">
+                            <span class="rx-mark">Rx</span>
+                            <div>
+                                <h5>Skincare Prescription for ${escapeHtml(`${skinLabel} Skin`)}</h5>
+                                <p>Follow consistently for 4-6 weeks before reassessment.</p>
+                            </div>
+                        </div>
+                        <div class="rx-columns">
+                            <section class="rx-block">
+                                <h6>Morning Routine (AM)</h6>
+                                <ol class="rx-list">${morningItemsHtml}</ol>
+                            </section>
+                            <section class="rx-block">
+                                <h6>Evening Routine (PM)</h6>
+                                <ol class="rx-list">${eveningItemsHtml}</ol>
+                            </section>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="prescription-section">
+                    <h4>Care Notes</h4>
+                    <div class="rx-notes-grid">
+                        <section class="rx-note-card">
+                            <h6>DO's</h6>
+                            <ul>${dosItemsHtml}</ul>
+                        </section>
+                        <section class="rx-note-card">
+                            <h6>DON'Ts</h6>
+                            <ul>${dontItemsHtml}</ul>
+                        </section>
+                    </div>
+                </section>
+
+                <section class="prescription-section">
+                    <h4>Recommended Products</h4>
+                    <div class="rx-products-grid">
+                        ${renderProductCards(products)}
+                    </div>
+                </section>
+
+                <footer class="prescription-footer">
+                    <p>${escapeHtml(recommendations.description || "Personalized skincare guidance generated by DermaScan AI.")}</p>
+                    <p>
+                        Model: ${escapeHtml(safeAnalysis.model_version || "n/a")} |
+                        Inference time: ${escapeHtml(`${formatScoreLabel(safeAnalysis.inference_ms || 0)} ms`)}
+                    </p>
+                    <p>This AI prescription supports skincare planning and does not replace professional medical diagnosis.</p>
+                </footer>
+            </article>
         `;
 
+        bindPrescriptionActions(safeAnalysis, issuedAt);
         analysisResult.hidden = false;
         analysisResult.removeAttribute("hidden");
         if (analysisCard) {
@@ -975,6 +1364,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     const showPreview = (file) => {
+        selectedFile = file || null;
         const reader = new FileReader();
         reader.onload = (event) => {
             previewImage.src = event.target.result;
@@ -992,7 +1382,11 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     const resetPreview = () => {
+        selectedFile = null;
         imageInput.value = "";
+        if (cameraInput) {
+            cameraInput.value = "";
+        }
         previewContainer.style.display = "none";
         analyzeBtn.style.display = hideAnalyzeUntilFile ? "none" : "";
         uploadArea.style.display = "block";
@@ -1000,6 +1394,168 @@ document.addEventListener("DOMContentLoaded", () => {
         showProgress(false);
         if (analysisCard) {
             analysisCard.classList.remove("has-result");
+        }
+    };
+
+    const setCameraStatus = (message, isError = false) => {
+        if (!cameraStatus) {
+            return;
+        }
+
+        const text = String(message || "").trim();
+        cameraStatus.textContent = text;
+        cameraStatus.hidden = !text;
+        cameraStatus.classList.toggle("is-error", Boolean(text) && isError);
+    };
+
+    const stopCameraStream = () => {
+        if (cameraStream && typeof cameraStream.getTracks === "function") {
+            cameraStream.getTracks().forEach((track) => {
+                try {
+                    track.stop();
+                } catch (_err) {
+                    return;
+                }
+            });
+        }
+        cameraStream = null;
+
+        if (cameraVideo) {
+            try {
+                cameraVideo.pause();
+            } catch (_err) {
+                // Ignore pause failures while cleaning up the stream.
+            }
+            if ("srcObject" in cameraVideo) {
+                cameraVideo.srcObject = null;
+            }
+        }
+    };
+
+    const setCameraModalOpen = (isOpen) => {
+        if (!cameraModal) {
+            return;
+        }
+
+        cameraModal.hidden = !isOpen;
+        cameraModal.classList.toggle("is-open", isOpen);
+        syncBodyModalState();
+    };
+
+    const closeCameraModal = () => {
+        stopCameraStream();
+        setCameraStatus("");
+        setCameraModalOpen(false);
+    };
+
+    const openInlineCamera = async () => {
+        if (!cameraModal || !cameraVideo) {
+            return false;
+        }
+
+        if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== "function") {
+            return false;
+        }
+
+        if (cameraIsOpening) {
+            return true;
+        }
+
+        cameraIsOpening = true;
+        clearError();
+        setCameraStatus("Starting camera...");
+        setCameraModalOpen(true);
+
+        try {
+            stopCameraStream();
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: false,
+                video: {
+                    facingMode: {
+                        ideal: "environment",
+                    },
+                    width: {
+                        ideal: 1280,
+                    },
+                    height: {
+                        ideal: 720,
+                    },
+                },
+            });
+
+            cameraStream = stream;
+            cameraVideo.srcObject = stream;
+            await cameraVideo.play();
+            setCameraStatus("");
+            return true;
+        } catch (error) {
+            closeCameraModal();
+            const errorName = String(error?.name || "");
+            if (errorName === "NotAllowedError" || errorName === "SecurityError") {
+                showError("Camera access is blocked. Allow camera permission, or use Choose Photo.");
+            } else if (errorName === "NotFoundError" || errorName === "OverconstrainedError") {
+                showError("No working camera found on this device. Please upload a photo.");
+            } else {
+                showError("Live camera preview is unavailable. Opening the camera picker instead.");
+            }
+            return false;
+        } finally {
+            cameraIsOpening = false;
+        }
+    };
+
+    const captureInlineCameraImage = async () => {
+        if (!cameraVideo || !cameraVideo.videoWidth || !cameraVideo.videoHeight) {
+            showError("Camera is not ready yet. Please wait a moment and try again.");
+            return;
+        }
+
+        const previousCaptureLabel = cameraTakeBtn?.textContent || "Capture Photo";
+        if (cameraTakeBtn) {
+            cameraTakeBtn.disabled = true;
+            cameraTakeBtn.textContent = "Capturing...";
+        }
+        setCameraStatus("Capturing...");
+
+        try {
+            const canvas = document.createElement("canvas");
+            canvas.width = cameraVideo.videoWidth;
+            canvas.height = cameraVideo.videoHeight;
+            const context = canvas.getContext("2d");
+            if (!context) {
+                throw new Error("Unable to access camera frame.");
+            }
+            context.drawImage(cameraVideo, 0, 0, canvas.width, canvas.height);
+
+            const blob = await new Promise((resolve) => {
+                canvas.toBlob(resolve, "image/jpeg", 0.92);
+            });
+            if (!blob) {
+                throw new Error("Unable to create image from camera capture.");
+            }
+
+            const now = Date.now();
+            const captureFile = new File([blob], `camera-capture-${now}.jpg`, {
+                type: "image/jpeg",
+                lastModified: now,
+            });
+
+            imageInput.value = "";
+            if (cameraInput) {
+                cameraInput.value = "";
+            }
+
+            clearError();
+            showPreview(captureFile);
+            closeCameraModal();
+        } catch (_error) {
+            showError("Could not capture photo. Please try again.");
+            setCameraStatus("Could not capture photo. Try again.", true);
+        } finally {
+            if (cameraTakeBtn) {
+                cameraTakeBtn.disabled = false;
+                cameraTakeBtn.textContent = previousCaptureLabel;
+            }
         }
     };
 
@@ -1039,6 +1595,61 @@ document.addEventListener("DOMContentLoaded", () => {
         choosePhotoBtn.addEventListener("click", () => imageInput.click());
     }
 
+    if (cameraCaptureBtn) {
+        cameraCaptureBtn.addEventListener("click", async () => {
+            const opened = await openInlineCamera();
+            if (!opened && cameraInput) {
+                cameraInput.click();
+            }
+        });
+    }
+
+    if (cameraInput) {
+        cameraInput.addEventListener("change", (event) => {
+            clearError();
+            if (event.target.files && event.target.files[0]) {
+                showPreview(event.target.files[0]);
+            }
+        });
+    }
+
+    if (cameraCloseBtn) {
+        cameraCloseBtn.addEventListener("click", closeCameraModal);
+    }
+
+    if (cameraCancelBtn) {
+        cameraCancelBtn.addEventListener("click", closeCameraModal);
+    }
+
+    if (cameraTakeBtn) {
+        cameraTakeBtn.addEventListener("click", () => {
+            captureInlineCameraImage().catch(() => {
+                showError("Could not capture photo. Please try again.");
+            });
+        });
+    }
+
+    if (cameraModal) {
+        cameraModal.addEventListener("click", (event) => {
+            if (event.target === cameraModal) {
+                closeCameraModal();
+            }
+        });
+    }
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") {
+            return;
+        }
+        if (cameraModal && cameraModal.classList.contains("is-open")) {
+            closeCameraModal();
+        }
+    });
+
+    window.addEventListener("pagehide", () => {
+        stopCameraStream();
+    });
+
     uploadArea.addEventListener("click", (event) => {
         if (event.target instanceof HTMLElement && event.target.closest("button")) {
             return;
@@ -1066,7 +1677,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const files = event.dataTransfer.files;
         if (files.length > 0) {
-            imageInput.files = files;
             showPreview(files[0]);
             clearError();
         }
@@ -1076,7 +1686,7 @@ document.addEventListener("DOMContentLoaded", () => {
         event.preventDefault();
         clearError();
 
-        const file = imageInput.files?.[0];
+        const file = selectedFile || imageInput.files?.[0] || cameraInput?.files?.[0];
         if (!file) {
             showError("Please choose an image before analyzing.");
             return;
