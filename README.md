@@ -21,7 +21,7 @@ The app predicts facial skin type (`dry`, `normal`, `oily`), generates Grad-CAM 
 - Backend: Flask, Gunicorn
 - ML: TensorFlow/Keras, OpenCV, NumPy, scikit-learn
 - Image processing: Pillow, OpenCV, MediaPipe
-- Database: SQLite (`database/skin_care.db`)
+- Database: MongoDB (`users`, `results`, `schedule_events`, `products` collections)
 - Frontend: Jinja templates + modular JavaScript + CSS
 
 ## Project Structure
@@ -36,7 +36,8 @@ The app predicts facial skin type (`dry`, `normal`, `oily`), generates Grad-CAM 
 |   |-- db.py
 |   |-- auth.py
 |   |-- save_result.py
-|   `-- schedule_events.py
+|   |-- schedule_events.py
+|   `-- migrate_sqlite_to_mongo.py
 |-- preprocessing/
 |   |-- image_preprocess.py
 |   `-- gradcam.py
@@ -82,6 +83,9 @@ pip install -r requirements.txt
 $env:SECRET_KEY = "replace-with-a-long-random-secret"
 $env:SESSION_COOKIE_SECURE = "0"
 $env:FLASK_DEBUG = "0"
+$env:MONGO_URI = "mongodb://localhost:27017"
+$env:MONGO_DB_NAME = "skin_analysis"
+$env:ADMIN_EMAILS = "you@example.com"
 ```
 
 4. Run the app
@@ -92,11 +96,20 @@ python app.py
 
 Open: `http://127.0.0.1:5000`
 
+5. (Optional) Migrate existing SQLite data into MongoDB
+
+```powershell
+python -m database.migrate_sqlite_to_mongo --drop-existing
+```
+
 ## Environment Variables
 
 - `SECRET_KEY`: strongly recommended; if missing, app falls back to insecure dev key
 - `SESSION_COOKIE_SECURE`: set `1` for HTTPS production, `0` for local dev
 - `FLASK_DEBUG`: optional debug toggle
+- `MONGO_URI`: Mongo connection URI (default: `mongodb://localhost:27017`)
+- `MONGO_DB_NAME`: database name (default: `skin_analysis`)
+- `ADMIN_EMAILS`: comma-separated emails that should have admin access (example: `admin@example.com,ops@example.com`)
 
 ## API Endpoints
 
@@ -110,6 +123,10 @@ Open: `http://127.0.0.1:5000`
 - `POST /api/schedule/events`
 - `PATCH /api/schedule/events/<event_id>`
 - `DELETE /api/schedule/events/<event_id>`
+- `GET /api/admin/overview` (admin only)
+- `GET /api/admin/recent-users?limit=20` (admin only)
+- `GET /api/admin/recent-results?limit=20` (admin only)
+- `GET /api/admin/recent-events?limit=20` (admin only)
 - `POST /api/analyze` (multipart form-data with `image`)
 
 For protected mutation endpoints (`POST`, `PATCH`, `DELETE`), send CSRF token in:
@@ -118,10 +135,16 @@ For protected mutation endpoints (`POST`, `PATCH`, `DELETE`), send CSRF token in
 
 ## Schedule Sync Notes
 
-- Schedule events are stored per user in `schedule_events` table.
+- Schedule events are stored per user in the `schedule_events` collection.
 - Events are fetched and mutated through authenticated API endpoints.
 - UI filter/selection state remains local, but event data is server-backed.
 - Any logged-in device for the same account can see the same events.
+
+## Admin Console
+
+- Route: `GET /admin` (admin only)
+- Shows high-level counts and recent users/results/events.
+- Access is role-gated using `ADMIN_EMAILS`.
 
 ## Web Routes
 
@@ -178,7 +201,7 @@ Open: `http://localhost:5000`
 ## Current Known Limitations
 
 - Model accuracy can be improved further, especially for the `oily` class.
-- SQLite works well for single-instance deployment; production multi-instance scale should use managed relational DB.
+- Ensure MongoDB is reachable and indexed before serving production traffic.
 
 ## Project Report
 

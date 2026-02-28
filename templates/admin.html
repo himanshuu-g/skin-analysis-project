@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Console - SkinAnalysis AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/analyzer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+</head>
+<body class="analyzer-page admin-page">
+    <div class="dashboard-shell">
+        <aside class="dashboard-sidebar">
+            <div class="sidebar-top">
+                <a class="sidebar-brand" href="{{ url_for('analyzer') }}">
+                    <span class="sidebar-brand-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M4.3 13.2c0-5 4-9 9-9h5.5v5.5c0 5-4 9-9 9H4.3z"></path>
+                            <path d="M6.3 16.5c3.7-.2 6.8-2.1 9.1-5.3"></path>
+                        </svg>
+                    </span>
+                    <span>SkinAnalysis AI</span>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav" aria-label="Admin navigation">
+                <a class="sidebar-link" href="{{ url_for('analyzer') }}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="3" y="3" width="7" height="7" rx="1.4"></rect>
+                        <rect x="14" y="3" width="7" height="7" rx="1.4"></rect>
+                        <rect x="3" y="14" width="7" height="7" rx="1.4"></rect>
+                        <rect x="14" y="14" width="7" height="7" rx="1.4"></rect>
+                    </svg>
+                    Dashboard
+                </a>
+                <a class="sidebar-link" href="{{ url_for('analyzer') }}#dashboard-history-view">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M4 12a8 8 0 1 0 2.3-5.7"></path>
+                        <path d="M4 4v4h4"></path>
+                        <path d="M12 8v4l3 2"></path>
+                    </svg>
+                    History
+                </a>
+                <a class="sidebar-link" href="{{ url_for('settings') }}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.3 1.3 0 0 0 .3 1.4l.1.1a1.6 1.6 0 0 1 0 2.3 1.6 1.6 0 0 1-2.3 0l-.1-.1a1.3 1.3 0 0 0-1.4-.3 1.3 1.3 0 0 0-.8 1.2v.2a1.6 1.6 0 1 1-3.2 0v-.2a1.3 1.3 0 0 0-.8-1.2 1.3 1.3 0 0 0-1.4.3l-.1.1a1.6 1.6 0 0 1-2.3 0 1.6 1.6 0 0 1 0-2.3l.1-.1a1.3 1.3 0 0 0 .3-1.4 1.3 1.3 0 0 0-1.2-.8h-.2a1.6 1.6 0 1 1 0-3.2h.2a1.3 1.3 0 0 0 1.2-.8 1.3 1.3 0 0 0-.3-1.4l-.1-.1a1.6 1.6 0 0 1 0-2.3 1.6 1.6 0 0 1 2.3 0l.1.1a1.3 1.3 0 0 0 1.4.3h.1a1.3 1.3 0 0 0 .8-1.2v-.2a1.6 1.6 0 1 1 3.2 0v.2a1.3 1.3 0 0 0 .8 1.2h.1a1.3 1.3 0 0 0 1.4-.3l.1-.1a1.6 1.6 0 0 1 2.3 0 1.6 1.6 0 0 1 0 2.3l-.1.1a1.3 1.3 0 0 0-.3 1.4v.1a1.3 1.3 0 0 0 1.2.8h.2a1.6 1.6 0 1 1 0 3.2h-.2a1.3 1.3 0 0 0-1.2.8z"></path>
+                    </svg>
+                    Settings
+                </a>
+                <a class="sidebar-link is-active" href="{{ url_for('admin_dashboard') }}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 3l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.9 6.7 19l1-5.8L3.5 9.2l5.9-.9z"></path>
+                    </svg>
+                    Admin
+                </a>
+            </nav>
+
+            <div class="sidebar-profile">
+                <a class="sidebar-profile-main" href="{{ url_for('settings') }}">
+                    <span class="sidebar-avatar">{{ auth_user_initials }}</span>
+                    <span class="sidebar-profile-copy">
+                        <strong>{{ auth_user_name }}</strong>
+                        <small>Administrator</small>
+                    </span>
+                </a>
+                <a class="sidebar-profile-action" href="{{ url_for('logout') }}" aria-label="Log out">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M14 8l4 4-4 4"></path>
+                        <path d="M18 12H9"></path>
+                        <path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"></path>
+                    </svg>
+                </a>
+            </div>
+        </aside>
+
+        <section class="dashboard-main">
+            <header class="dashboard-header">
+                <div class="dashboard-header-copy">
+                    <h1 class="dashboard-greeting">Admin Console</h1>
+                    <p class="dashboard-date">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <rect x="4.5" y="5" width="15" height="15" rx="2"></rect>
+                            <path d="M8 3.5v3"></path>
+                            <path d="M16 3.5v3"></path>
+                            <path d="M4.5 10h15"></path>
+                        </svg>
+                        <span>{{ admin_overview.generated_at }}</span>
+                    </p>
+                </div>
+            </header>
+
+            <main class="dashboard-content admin-content">
+                <section class="dashboard-card admin-card">
+                    <div class="admin-head">
+                        <div>
+                            <p class="card-kicker">Monitoring</p>
+                            <h2>Production Snapshot</h2>
+                        </div>
+                    </div>
+
+                    <div class="admin-overview-grid">
+                        <article class="admin-overview-item">
+                            <p>Total Users</p>
+                            <h3>{{ admin_overview.users }}</h3>
+                        </article>
+                        <article class="admin-overview-item">
+                            <p>Total Results</p>
+                            <h3>{{ admin_overview.results }}</h3>
+                        </article>
+                        <article class="admin-overview-item">
+                            <p>Schedule Events</p>
+                            <h3>{{ admin_overview.schedule_events }}</h3>
+                        </article>
+                        <article class="admin-overview-item">
+                            <p>Products</p>
+                            <h3>{{ admin_overview.products }}</h3>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="dashboard-card admin-card">
+                    <h3>Recent Users</h3>
+                    <div class="admin-table-wrap">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if admin_recent_users %}
+                                {% for user in admin_recent_users %}
+                                <tr>
+                                    <td>{{ user.name }}</td>
+                                    <td>{{ user.email }}</td>
+                                    <td>{{ user.role }}</td>
+                                    <td>{{ user.created_at }}</td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="4">No users found.</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="dashboard-card admin-card">
+                    <h3>Recent Analysis Results</h3>
+                    <div class="admin-table-wrap">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Skin Type</th>
+                                    <th>Confidence</th>
+                                    <th>Low Confidence</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if admin_recent_results %}
+                                {% for result in admin_recent_results %}
+                                <tr>
+                                    <td>{{ result.user_email or result.user_id or "Unknown" }}</td>
+                                    <td>{{ result.skin_type }}</td>
+                                    <td>{{ result.confidence if result.confidence is not none else "n/a" }}</td>
+                                    <td>{{ "Yes" if result.is_low_confidence else "No" }}</td>
+                                    <td>{{ result.created_at }}</td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="5">No results found.</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="dashboard-card admin-card">
+                    <h3>Recent Schedule Events</h3>
+                    <div class="admin-table-wrap">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Title</th>
+                                    <th>Type</th>
+                                    <th>Priority</th>
+                                    <th>Completed</th>
+                                    <th>Event Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if admin_recent_events %}
+                                {% for event in admin_recent_events %}
+                                <tr>
+                                    <td>{{ event.user_email or event.user_id or "Unknown" }}</td>
+                                    <td>{{ event.title }}</td>
+                                    <td>{{ event.event_type }}</td>
+                                    <td>{{ event.priority }}</td>
+                                    <td>{{ "Yes" if event.is_completed else "No" }}</td>
+                                    <td>{{ event.event_datetime }}</td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="6">No schedule events found.</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </main>
+        </section>
+    </div>
+</body>
+</html>

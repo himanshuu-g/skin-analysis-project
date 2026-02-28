@@ -1,16 +1,4 @@
-import sqlite3
-import os
-
-# -----------------------------
-# Database path
-# -----------------------------
-DB_PATH = os.path.join(os.path.dirname(__file__), "skin_care.db")
-
-# -----------------------------
-# Connect to DB
-# -----------------------------
-conn = sqlite3.connect(DB_PATH)
-cursor = conn.cursor()
+from database.db import get_db
 
 # -----------------------------
 # Product data
@@ -20,27 +8,41 @@ products = [
     ("Cetaphil Moisturizing Cream", "Moisturizer", "dry"),
     ("Neutrogena Hydro Boost", "Moisturizer", "dry"),
     ("Minimalist Hyaluronic Acid", "Serum", "dry"),
-
     # OILY SKIN
     ("La Roche-Posay Effaclar", "Cleanser", "oily"),
     ("Minimalist Salicylic Acid", "Serum", "oily"),
     ("Neutrogena Oil-Free Moisturizer", "Moisturizer", "oily"),
-
     # NORMAL SKIN
     ("Cetaphil Gentle Cleanser", "Cleanser", "normal"),
     ("Simple Hydrating Light Moisturizer", "Moisturizer", "normal"),
     ("The Ordinary Niacinamide", "Serum", "normal"),
 ]
 
-# -----------------------------
-# Insert products
-# -----------------------------
-cursor.executemany(
-    "INSERT INTO products (name, category, skin_type) VALUES (?, ?, ?)",
-    products
-)
 
-conn.commit()
-conn.close()
+def main():
+    db = get_db()
+    products_collection = db["products"]
 
-print("✅ Products inserted successfully!")
+    inserted_count = 0
+    for name, category, skin_type in products:
+        update_result = products_collection.update_one(
+            {
+                "name": name,
+                "category": category,
+                "skin_type": skin_type,
+            },
+            {
+                "$setOnInsert": {
+                    "description": "",
+                }
+            },
+            upsert=True,
+        )
+        if update_result.upserted_id is not None:
+            inserted_count += 1
+
+    print(f"Inserted {inserted_count} new products into MongoDB.")
+
+
+if __name__ == "__main__":
+    main()

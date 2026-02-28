@@ -59,10 +59,17 @@ export const initAnalysisModule = ({ analysisResult, analysisCard, showError, ca
         const year = issuedAt.getFullYear();
         const month = String(issuedAt.getMonth() + 1).padStart(2, "0");
         const day = String(issuedAt.getDate()).padStart(2, "0");
-        const scanId = Number(analysis.result_id);
-        const suffix = Number.isFinite(scanId)
-            ? `L${String(scanId).padStart(4, "0")}`
-            : `L${String(Math.floor(Math.random() * 9000) + 1000)}`;
+        const rawScanId = String(analysis.result_id || "").trim();
+        const numericScanId = Number(rawScanId);
+        let suffix = "";
+        if (Number.isFinite(numericScanId)) {
+            suffix = `L${String(numericScanId).padStart(4, "0")}`;
+        } else if (rawScanId) {
+            const compactScanId = rawScanId.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+            suffix = `L${compactScanId.slice(-6) || "0000"}`;
+        } else {
+            suffix = `L${String(Math.floor(Math.random() * 9000) + 1000)}`;
+        }
         return `DS-${year}${month}${day}-${suffix}`;
     };
 

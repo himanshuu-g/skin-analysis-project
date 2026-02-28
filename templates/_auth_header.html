@@ -8,6 +8,13 @@
     </div>
 
     <div class="auth-header-tools">
+        {% if auth_user_is_admin %}
+        <a class="auth-bell" href="{{ url_for('admin_dashboard') }}" aria-label="Admin console">
+            <span class="auth-bell-icon">&#128736;</span>
+            <span class="auth-bell-badge">Admin</span>
+        </a>
+        {% endif %}
+
         <a class="auth-bell" href="{{ url_for('settings') }}" aria-label="Notifications">
             <span class="auth-bell-icon">&#128276;</span>
             <span class="auth-bell-badge">{{ auth_notification_count }}</span>

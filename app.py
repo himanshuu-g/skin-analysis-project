@@ -5,16 +5,23 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from hmac import compare_digest
-from sqlite3 import IntegrityError
 from uuid import uuid4
 
 from flask import Flask, jsonify, redirect, render_template, request, session, url_for
 from PIL import Image, UnidentifiedImageError
+from pymongo.errors import DuplicateKeyError
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
 from database.auth import create_user, get_user_by_email, get_user_by_id
-from database.db import get_db
+from database.admin_stats import (
+    get_admin_overview,
+    get_recent_results as get_admin_recent_results,
+    get_recent_schedule_events as get_admin_recent_schedule_events,
+    get_recent_users as get_admin_recent_users,
+    log_admin_audit,
+)
+from database.db import get_db, to_object_id
 from database.schedule_events import (
     create_schedule_event_for_user,
     delete_schedule_event_for_user,
@@ -52,6 +59,8 @@ ALLOWED_IMAGE_FORMATS = {"JPEG", "PNG", "BMP", "WEBP"}
 MAX_UPLOAD_SIZE_MB = 5
 DEFAULT_RESULTS_LIMIT = 20
 MAX_RESULTS_LIMIT = 100
+DEFAULT_ADMIN_LIMIT = 20
+MAX_ADMIN_LIMIT = 100
 SCHEDULE_ALLOWED_EVENT_TYPES = {"scan", "appointment", "reminder", "refill"}
 SCHEDULE_ALLOWED_PRIORITIES = {"low", "medium", "high"}
 SCHEDULE_MAX_TITLE_LENGTH = 90
@@ -146,13 +155,30 @@ def _get_payload():
 
 def _serialize_user(user_row):
     created_at = user_row["created_at"] if "created_at" in user_row.keys() else None
+    role = str(user_row.get("role", "user")).strip().lower() if hasattr(user_row, "get") else "user"
     return {
         "id": user_row["id"],
         "name": user_row["name"],
         "email": user_row["email"],
         "contact_number": user_row["contact_number"] if "contact_number" in user_row.keys() else "",
+        "role": role if role else "user",
         "created_at": created_at,
     }
+
+
+def _is_admin_role(role):
+    return str(role or "").strip().lower() == "admin"
+
+
+def _set_authenticated_session(user, show_onboarding=True):
+    session.clear()
+    session["user_id"] = user["id"]
+    session["user_name"] = user["name"]
+    session["user_email"] = user["email"]
+    session["user_contact_number"] = user.get("contact_number", "")
+    session["user_role"] = user.get("role", "user")
+    if show_onboarding:
+        session["show_onboarding"] = True
 
 
 def _parse_results_limit(raw_limit):
@@ -163,6 +189,16 @@ def _parse_results_limit(raw_limit):
     except ValueError:
         return DEFAULT_RESULTS_LIMIT
     return max(1, min(limit, MAX_RESULTS_LIMIT))
+
+
+def _parse_admin_limit(raw_limit):
+    if raw_limit is None:
+        return DEFAULT_ADMIN_LIMIT
+    try:
+        limit = int(raw_limit)
+    except ValueError:
+        return DEFAULT_ADMIN_LIMIT
+    return max(1, min(limit, MAX_ADMIN_LIMIT))
 
 
 def _parse_bool_value(raw_value, field_name="value"):
@@ -310,6 +346,7 @@ def _get_day_period_greeting(current_hour):
 
 def _build_auth_header_context():
     user_name = session.get("user_name", "User")
+    user_role = session.get("user_role", "user")
     local_now = datetime.now().astimezone()
     date_label = f"{local_now.strftime('%A')}, {local_now.strftime('%B')} {local_now.day}, {local_now.year}"
 
@@ -320,6 +357,8 @@ def _build_auth_header_context():
         "auth_greeting": _get_day_period_greeting(local_now.hour),
         "auth_date_label": date_label,
         "auth_notification_count": 3,
+        "auth_user_role": user_role,
+        "auth_user_is_admin": _is_admin_role(user_role),
     }
 
 
@@ -385,31 +424,25 @@ def _build_home_stats():
         "users_value": "0",
     }
 
-    conn = get_db()
-    try:
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            SELECT
-                COUNT(*) AS total_scans,
-                AVG(confidence) AS avg_confidence
-            FROM results
-            """
-        )
-        results_row = cursor.fetchone()
-        total_scans = int(results_row["total_scans"] or 0) if results_row else 0
-        avg_confidence = results_row["avg_confidence"] if results_row else None
+    db = get_db()
+    total_scans = int(db["results"].count_documents({}))
+    total_users = int(db["users"].count_documents({}))
 
-        cursor.execute(
-            """
-            SELECT COUNT(*) AS total_users
-            FROM users
-            """
+    avg_confidence = None
+    confidence_rows = list(
+        db["results"].aggregate(
+            [
+                {
+                    "$group": {
+                        "_id": None,
+                        "avg_confidence": {"$avg": "$confidence"},
+                    }
+                }
+            ]
         )
-        users_row = cursor.fetchone()
-        total_users = int(users_row["total_users"] or 0) if users_row else 0
-    finally:
-        conn.close()
+    )
+    if confidence_rows:
+        avg_confidence = confidence_rows[0].get("avg_confidence")
 
     stats["total_scans_value"] = _format_compact_count(total_scans)
     stats["users_value"] = _format_compact_count(total_users)
@@ -467,27 +500,27 @@ def _build_dashboard_stats(user_id):
         "latest_model_version": "n/a",
     }
 
-    conn = get_db()
-    try:
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            SELECT
-                confidence,
-                created_at,
-                skin_type,
-                class_probabilities_json,
-                model_version,
-                inference_ms
-            FROM results
-            WHERE user_id = ?
-            ORDER BY id DESC
-            """,
-            (int(user_id),),
+    user_object_id = to_object_id(user_id)
+    if user_object_id is None:
+        return stats
+
+    db = get_db()
+    rows = list(
+        db["results"]
+        .find(
+            {"user_id": user_object_id},
+            {
+                "confidence": 1,
+                "created_at": 1,
+                "skin_type": 1,
+                "class_probabilities": 1,
+                "class_probabilities_json": 1,
+                "model_version": 1,
+                "inference_ms": 1,
+            },
         )
-        rows = cursor.fetchall()
-    finally:
-        conn.close()
+        .sort([("_id", -1)])
+    )
 
     if not rows:
         return stats
@@ -601,10 +634,18 @@ def _build_dashboard_stats(user_id):
             stats["routine_evening_steps"] = evening_steps
             stats["routine_badge"] = f"0/{routine_total_steps}"
 
-    raw_probabilities = latest_row["class_probabilities_json"] or "{}"
-    try:
-        parsed_probabilities = json.loads(raw_probabilities)
-    except json.JSONDecodeError:
+    raw_probabilities = latest_row.get("class_probabilities")
+    if raw_probabilities is None:
+        raw_probabilities = latest_row.get("class_probabilities_json")
+
+    if isinstance(raw_probabilities, dict):
+        parsed_probabilities = raw_probabilities
+    elif isinstance(raw_probabilities, str):
+        try:
+            parsed_probabilities = json.loads(raw_probabilities or "{}")
+        except json.JSONDecodeError:
+            parsed_probabilities = {}
+    else:
         parsed_probabilities = {}
 
     has_probability_signal = False
@@ -870,6 +911,33 @@ def login_required(view_func):
     return wrapped_view
 
 
+def admin_required(view_func):
+    @wraps(view_func)
+    def wrapped_view(*args, **kwargs):
+        user_id = session.get("user_id")
+        if not user_id:
+            if _is_api_request():
+                return _json_error("Authentication required.", 401)
+            return redirect(url_for("login", next=request.path))
+
+        user = get_user_by_id(user_id)
+        if not user:
+            session.clear()
+            if _is_api_request():
+                return _json_error("Session expired.", 401)
+            return redirect(url_for("login", next=request.path))
+
+        session["user_role"] = user.get("role", "user")
+        if not _is_admin_role(session.get("user_role")):
+            if _is_api_request():
+                return _json_error("Admin access required.", 403)
+            return redirect(url_for("analyzer"))
+
+        return view_func(*args, **kwargs)
+
+    return wrapped_view
+
+
 @app.context_processor
 def inject_csrf_token():
     context = {"csrf_token": _get_or_create_csrf_token}
@@ -939,16 +1007,15 @@ def signup():
                     contact_number=form_contact_number,
                     password_hash=generate_password_hash(password),
                 )
-            except IntegrityError:
+            except DuplicateKeyError:
                 error = "An account with this email already exists."
             else:
-                session.clear()
-                session["user_id"] = user_id
-                session["user_name"] = form_name
-                session["user_email"] = form_email
-                session["user_contact_number"] = form_contact_number
-                session["show_onboarding"] = True
-                return redirect(url_for("analyzer"))
+                user = get_user_by_id(user_id)
+                if not user:
+                    error = "Unable to sign up right now. Please try again."
+                else:
+                    _set_authenticated_session(user, show_onboarding=True)
+                    return redirect(url_for("analyzer"))
 
     return render_template(
         "signup.html",
@@ -978,12 +1045,7 @@ def login():
         if not user or not check_password_hash(user["password_hash"], password):
             error = "Invalid email or password."
         else:
-            session.clear()
-            session["user_id"] = user["id"]
-            session["user_name"] = user["name"]
-            session["user_email"] = user["email"]
-            session["user_contact_number"] = user["contact_number"]
-            session["show_onboarding"] = True
+            _set_authenticated_session(user, show_onboarding=True)
             _set_auth_notice("login_success")
             if _is_safe_next_url(next_url):
                 return redirect(next_url)
@@ -1036,13 +1098,36 @@ def settings():
     return redirect(url_for("analyzer", _anchor="dashboard-settings"))
 
 
+@app.route("/admin", methods=["GET"])
+@admin_required
+def admin_dashboard():
+    overview = get_admin_overview()
+    recent_users = get_admin_recent_users(limit=12)
+    recent_results = get_admin_recent_results(limit=12)
+    recent_events = get_admin_recent_schedule_events(limit=12)
+    log_admin_audit(
+        session.get("user_id"),
+        "view_admin_dashboard",
+        request_path=request.path,
+        metadata={"recent_limit": 12},
+    )
+
+    return render_template(
+        "admin.html",
+        admin_overview=overview,
+        admin_recent_users=recent_users,
+        admin_recent_results=recent_results,
+        admin_recent_events=recent_events,
+    )
+
+
 @app.route("/history", methods=["GET"])
 @login_required
 def history():
     return redirect(url_for("analyzer", _anchor="dashboard-history-view"))
 
 
-@app.route("/history/<int:result_id>", methods=["GET"])
+@app.route("/history/<result_id>", methods=["GET"])
 @login_required
 def history_detail(result_id):
     result = get_result_for_user(session["user_id"], result_id)
@@ -1067,7 +1152,7 @@ def history_detail(result_id):
     )
 
 
-@app.route("/history/<int:result_id>/delete", methods=["POST"])
+@app.route("/history/<result_id>/delete", methods=["POST"])
 @login_required
 @csrf_protect
 def history_delete(result_id):
@@ -1143,16 +1228,14 @@ def api_signup():
             contact_number=contact_number,
             password_hash=generate_password_hash(password),
         )
-    except IntegrityError:
+    except DuplicateKeyError:
         return _json_error("An account with this email already exists.", 409)
 
     user = get_user_by_id(user_id)
-    session.clear()
-    session["user_id"] = user["id"]
-    session["user_name"] = user["name"]
-    session["user_email"] = user["email"]
-    session["user_contact_number"] = user["contact_number"]
-    session["show_onboarding"] = True
+    if not user:
+        return _json_error("Unable to create account right now.", 500)
+
+    _set_authenticated_session(user, show_onboarding=True)
     _set_auth_notice("login_success")
 
     return (
@@ -1178,12 +1261,7 @@ def api_login():
     if not user or not check_password_hash(user["password_hash"], password):
         return _json_error("Invalid email or password.", 401)
 
-    session.clear()
-    session["user_id"] = user["id"]
-    session["user_name"] = user["name"]
-    session["user_email"] = user["email"]
-    session["user_contact_number"] = user["contact_number"]
-    session["show_onboarding"] = True
+    _set_authenticated_session(user, show_onboarding=True)
     _set_auth_notice("login_success")
 
     return jsonify(
@@ -1212,6 +1290,61 @@ def api_logout():
     session.clear()
     _set_auth_notice("logout_success")
     return jsonify({"message": "Logged out.", "auth_notice": AUTH_NOTICE_MESSAGES["logout_success"]})
+
+
+@app.route("/api/admin/overview", methods=["GET"])
+@admin_required
+def api_admin_overview():
+    overview = get_admin_overview()
+    log_admin_audit(
+        session.get("user_id"),
+        "api_admin_overview",
+        request_path=request.path,
+        metadata={},
+    )
+    return jsonify({"overview": overview})
+
+
+@app.route("/api/admin/recent-users", methods=["GET"])
+@admin_required
+def api_admin_recent_users():
+    limit = _parse_admin_limit(request.args.get("limit"))
+    users = get_admin_recent_users(limit=limit)
+    log_admin_audit(
+        session.get("user_id"),
+        "api_admin_recent_users",
+        request_path=request.path,
+        metadata={"limit": limit},
+    )
+    return jsonify({"users": users, "count": len(users), "limit": limit})
+
+
+@app.route("/api/admin/recent-results", methods=["GET"])
+@admin_required
+def api_admin_recent_results():
+    limit = _parse_admin_limit(request.args.get("limit"))
+    results = get_admin_recent_results(limit=limit)
+    log_admin_audit(
+        session.get("user_id"),
+        "api_admin_recent_results",
+        request_path=request.path,
+        metadata={"limit": limit},
+    )
+    return jsonify({"results": results, "count": len(results), "limit": limit})
+
+
+@app.route("/api/admin/recent-events", methods=["GET"])
+@admin_required
+def api_admin_recent_events():
+    limit = _parse_admin_limit(request.args.get("limit"))
+    events = get_admin_recent_schedule_events(limit=limit)
+    log_admin_audit(
+        session.get("user_id"),
+        "api_admin_recent_events",
+        request_path=request.path,
+        metadata={"limit": limit},
+    )
+    return jsonify({"events": events, "count": len(events), "limit": limit})
 
 
 @app.route("/api/results", methods=["GET"])
@@ -1255,7 +1388,7 @@ def api_schedule_create_event():
     return jsonify({"event": created_event}), 201
 
 
-@app.route("/api/schedule/events/<int:event_id>", methods=["PATCH"])
+@app.route("/api/schedule/events/<event_id>", methods=["PATCH"])
 @login_required
 @csrf_protect
 def api_schedule_update_event(event_id):
@@ -1274,7 +1407,7 @@ def api_schedule_update_event(event_id):
     return jsonify({"event": updated_event})
 
 
-@app.route("/api/schedule/events/<int:event_id>", methods=["DELETE"])
+@app.route("/api/schedule/events/<event_id>", methods=["DELETE"])
 @login_required
 @csrf_protect
 def api_schedule_delete_event(event_id):
@@ -1282,7 +1415,7 @@ def api_schedule_delete_event(event_id):
     if not deleted:
         return _json_error("Schedule event not found.", 404)
 
-    return jsonify({"deleted": True, "event_id": int(event_id)})
+    return jsonify({"deleted": True, "event_id": str(event_id)})
 
 
 @app.route("/api/analyze", methods=["POST"])

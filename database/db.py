@@ -1,140 +1,85 @@
 import os
-import sqlite3
+from threading import Lock
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "skin_care.db")
+from bson import ObjectId
+from pymongo import ASCENDING, DESCENDING, MongoClient
+
+MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017")
+MONGO_DB_NAME = os.environ.get("MONGO_DB_NAME", "skin_analysis")
+MONGO_SERVER_SELECTION_TIMEOUT_MS = int(
+    os.environ.get("MONGO_SERVER_SELECTION_TIMEOUT_MS", "5000")
+)
+
+_client_lock = Lock()
+_client = None
+_indexes_ready = False
 
 
-def _table_has_column(conn, table_name, column_name):
-    cursor = conn.execute(f"PRAGMA table_info({table_name})")
-    return any(row[1] == column_name for row in cursor.fetchall())
-
-
-def _add_column_if_missing(conn, table_name, column_name, column_definition):
-    if not _table_has_column(conn, table_name, column_name):
-        conn.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_definition}")
-
-
-def _ensure_results_schema(conn):
-    _add_column_if_missing(conn, "results", "user_id", "user_id INTEGER REFERENCES users(id)")
-    _add_column_if_missing(conn, "results", "model_version", "model_version TEXT")
-    _add_column_if_missing(conn, "results", "class_probabilities_json", "class_probabilities_json TEXT")
-    _add_column_if_missing(conn, "results", "is_low_confidence", "is_low_confidence INTEGER NOT NULL DEFAULT 0")
-    _add_column_if_missing(conn, "results", "inference_ms", "inference_ms REAL")
-    _add_column_if_missing(conn, "results", "gradcam_image_path", "gradcam_image_path TEXT")
-    conn.execute(
-        """
-        CREATE INDEX IF NOT EXISTS idx_results_user_id_created_at
-        ON results (user_id, created_at DESC)
-        """
+def _build_client():
+    return MongoClient(
+        MONGO_URI,
+        tz_aware=True,
+        serverSelectionTimeoutMS=MONGO_SERVER_SELECTION_TIMEOUT_MS,
     )
 
 
-def _ensure_users_schema(conn):
-    _add_column_if_missing(conn, "users", "contact_number", "contact_number TEXT NOT NULL DEFAULT ''")
-
-
-def _ensure_schedule_events_schema(conn):
-    _add_column_if_missing(conn, "schedule_events", "description", "description TEXT NOT NULL DEFAULT ''")
-    _add_column_if_missing(
-        conn,
-        "schedule_events",
-        "reminder_minutes",
-        "reminder_minutes INTEGER NOT NULL DEFAULT 30",
+def _ensure_indexes(db):
+    db["users"].create_index("email", unique=True, name="idx_users_email_unique")
+    db["results"].create_index(
+        [("user_id", ASCENDING), ("created_at", DESCENDING)],
+        name="idx_results_user_id_created_at",
     )
-    _add_column_if_missing(
-        conn,
-        "schedule_events",
-        "is_completed",
-        "is_completed INTEGER NOT NULL DEFAULT 0",
+    db["schedule_events"].create_index(
+        [("user_id", ASCENDING), ("is_completed", ASCENDING), ("event_datetime", ASCENDING)],
+        name="idx_schedule_events_user_datetime",
     )
-    _add_column_if_missing(
-        conn,
-        "schedule_events",
-        "created_at",
-        "created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
+    db["schedule_events"].create_index(
+        [("user_id", ASCENDING), ("created_at", DESCENDING)],
+        name="idx_schedule_events_user_created_at",
     )
-    _add_column_if_missing(
-        conn,
-        "schedule_events",
-        "updated_at",
-        "updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
+    db["products"].create_index(
+        [("skin_type", ASCENDING), ("name", ASCENDING)],
+        name="idx_products_skin_type_name",
     )
-    conn.execute(
-        """
-        CREATE INDEX IF NOT EXISTS idx_schedule_events_user_datetime
-        ON schedule_events (user_id, is_completed, event_datetime ASC)
-        """
-    )
-    conn.execute(
-        """
-        CREATE INDEX IF NOT EXISTS idx_schedule_events_user_created_at
-        ON schedule_events (user_id, created_at DESC)
-        """
+    db["admin_audit"].create_index(
+        [("admin_user_id", ASCENDING), ("created_at", DESCENDING)],
+        name="idx_admin_audit_admin_user_created_at",
     )
 
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS products (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            skin_type TEXT NOT NULL,
-            category TEXT,
-            description TEXT
-        )
-        """
-    )
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS results (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER REFERENCES users(id),
-            skin_type TEXT NOT NULL,
-            confidence REAL,
-            image_path TEXT,
-            gradcam_image_path TEXT,
-            model_version TEXT,
-            class_probabilities_json TEXT,
-            is_low_confidence INTEGER NOT NULL DEFAULT 0,
-            inference_ms REAL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-        """
-    )
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            email TEXT NOT NULL UNIQUE,
-            contact_number TEXT NOT NULL DEFAULT '',
-            password_hash TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-        """
-    )
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS schedule_events (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL REFERENCES users(id),
-            title TEXT NOT NULL,
-            event_type TEXT NOT NULL,
-            priority TEXT NOT NULL,
-            event_datetime TEXT NOT NULL,
-            description TEXT NOT NULL DEFAULT '',
-            reminder_minutes INTEGER NOT NULL DEFAULT 30,
-            is_completed INTEGER NOT NULL DEFAULT 0,
-            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-        )
-        """
-    )
-    _ensure_users_schema(conn)
-    _ensure_results_schema(conn)
-    _ensure_schedule_events_schema(conn)
-    conn.commit()
-    return conn
+    global _client, _indexes_ready
+    with _client_lock:
+        if _client is None:
+            _client = _build_client()
+        db = _client[MONGO_DB_NAME]
+        if not _indexes_ready:
+            _ensure_indexes(db)
+            _indexes_ready = True
+        return db
+
+
+def ensure_indexes(db=None):
+    global _client, _indexes_ready
+    with _client_lock:
+        if db is None:
+            if _client is None:
+                _client = _build_client()
+            db = _client[MONGO_DB_NAME]
+        _ensure_indexes(db)
+        _indexes_ready = True
+        return db
+
+
+def to_object_id(raw_value):
+    if isinstance(raw_value, ObjectId):
+        return raw_value
+
+    raw_text = str(raw_value or "").strip()
+    if not raw_text:
+        return None
+
+    try:
+        return ObjectId(raw_text)
+    except Exception:
+        return None
