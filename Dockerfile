@@ -18,6 +18,6 @@ ENV SECRET_KEY=change-me-in-production
 ENV SESSION_COOKIE_SECURE=0
 ENV FLASK_DEBUG=0
 
-EXPOSE 5000
+EXPOSE 10000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-10000} app:app"]
