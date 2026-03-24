@@ -107,7 +107,9 @@ python -m database.migrate_sqlite_to_mongo --drop-existing
 - `SECRET_KEY`: strongly recommended; if missing, app falls back to insecure dev key
 - `SESSION_COOKIE_SECURE`: set `1` for HTTPS production, `0` for local dev
 - `FLASK_DEBUG`: optional debug toggle
-- `MONGO_URI`: Mongo connection URI (default: `mongodb://localhost:27017`)
+- `MONGO_URI`: primary Mongo connection URI (default fallback: `mongodb://localhost:27017`)
+- `MONGODB_URI`: optional alias for `MONGO_URI`
+- `MONGO_URL`: optional alias for `MONGO_URI`
 - `MONGO_DB_NAME`: database name (default: `skin_analysis`)
 - `ADMIN_EMAILS`: comma-separated emails that should have admin access (example: `admin@example.com,ops@example.com`)
 
@@ -181,6 +183,25 @@ python evaluate_model.py --data-dir dataset/split/test --batch-size 32
 
 Outputs are saved in `model/` (including `skin_model.keras` and `class_names.json`).
 
+## Current Evaluation Snapshot
+
+Latest verified run on `2026-03-23` using `dataset/split/test`:
+
+- Test samples: `356`
+- Overall accuracy: `51.97%`
+- Strongest class: `normal` (`F1 57.96%`)
+- Weakest class: `oily` (`F1 41.03%`)
+
+The current model should be presented as an academic prototype and decision-support system, not as a clinical diagnostic tool.
+
+## Tests
+
+Run the basic automated checks:
+
+```powershell
+python -m unittest discover -s tests -v
+```
+
 ## Docker
 
 Run with Docker Compose:
@@ -190,6 +211,18 @@ docker compose up --build
 ```
 
 Open: `http://localhost:5000`
+
+## Render Deployment Notes
+
+- Do not use `mongodb://localhost:27017` on Render; `localhost` points to the web service container.
+- Set `MONGO_URI` (or `MONGODB_URI`/`MONGO_URL`) to an external MongoDB endpoint, such as MongoDB Atlas.
+- Keep `MONGO_DB_NAME` set to your target database (for example `skin_analysis`).
+- This repo includes `render.yaml` for blueprint deploys:
+  - `MONGO_DB_NAME` defaults to `skin_analysis`
+  - `MONGO_URI` is required and intentionally left unsynced (`sync: false`)
+- After pushing changes, in Render use **Blueprint Sync** (or redeploy the existing web service) and set:
+  - `MONGO_URI=<your atlas/external mongodb uri>`
+  - `MONGO_DB_NAME=skin_analysis` (or your custom name)
 
 ## Security and Validation Notes
 
