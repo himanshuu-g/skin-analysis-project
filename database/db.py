@@ -4,11 +4,30 @@ from threading import Lock
 from bson import ObjectId
 from pymongo import ASCENDING, DESCENDING, MongoClient
 
-MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017")
+DEFAULT_MONGO_URI = "mongodb://localhost:27017"
+
+
+def _get_first_env_value(*names):
+    for name in names:
+        raw_value = str(os.environ.get(name, "") or "").strip()
+        if raw_value:
+            return raw_value
+    return ""
+
+
+def _is_localhost_mongo_uri(uri):
+    normalized = str(uri or "").strip().lower()
+    return normalized.startswith("mongodb://localhost") or normalized.startswith(
+        "mongodb://127.0.0.1"
+    )
+
+
+MONGO_URI = _get_first_env_value("MONGO_URI", "MONGODB_URI", "MONGO_URL") or DEFAULT_MONGO_URI
 MONGO_DB_NAME = os.environ.get("MONGO_DB_NAME", "skin_analysis")
 MONGO_SERVER_SELECTION_TIMEOUT_MS = int(
     os.environ.get("MONGO_SERVER_SELECTION_TIMEOUT_MS", "5000")
 )
+IS_RENDER_ENV = str(os.environ.get("RENDER", "") or "").strip().lower() == "true"
 
 _client_lock = Lock()
 _client = None
@@ -16,6 +35,12 @@ _indexes_ready = False
 
 
 def _build_client():
+    if IS_RENDER_ENV and _is_localhost_mongo_uri(MONGO_URI):
+        raise RuntimeError(
+            "MongoDB URI is configured as localhost in Render. "
+            "Set MONGO_URI (or MONGODB_URI/MONGO_URL) to a reachable external MongoDB endpoint."
+        )
+
     return MongoClient(
         MONGO_URI,
         tz_aware=True,

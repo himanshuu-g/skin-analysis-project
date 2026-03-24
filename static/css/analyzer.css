@@ -2659,6 +2659,15 @@ body.modal-open {
     gap: 8px;
 }
 
+.schedule-tools-row {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.schedule-export-btn {
+    min-height: 34px;
+}
+
 .schedule-filter-label {
     color: #625b54;
     font-size: 0.98rem;
@@ -4522,6 +4531,14 @@ body.modal-open {
 
     .schedule-filter-btn {
         flex: 1 1 auto;
+    }
+
+    .schedule-tools-row {
+        justify-content: stretch;
+    }
+
+    .schedule-export-btn {
+        width: 100%;
     }
 
     .schedule-form {
