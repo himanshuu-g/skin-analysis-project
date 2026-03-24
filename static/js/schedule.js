@@ -2,6 +2,7 @@ const FILTER_KEY = "skinanalysis_schedule_filter_v1";
 const SELECTED_KEY = "skinanalysis_schedule_selected_v1";
 const DEFAULT_REMINDER_MINUTES = 30;
 const EVENT_DURATION_MINUTES = 30;
+const CALENDAR_PROD_ID = "-//SkinAnalysis AI//Schedule Reminder//EN";
 const FILTER_TYPES = new Set(["all", "scan", "appointment", "reminder"]);
 
 const EVENT_TYPE_META = {
@@ -95,7 +96,7 @@ const escapeIcsValue = (value) =>
         .replaceAll(",", "\\,")
         .replaceAll(/\r?\n/g, "\\n");
 
-const buildReminderIcs = (event) => {
+const buildIcsEventSection = (event) => {
     const start = new Date(event.datetime);
     const end = new Date(start.getTime() + EVENT_DURATION_MINUTES * 60 * 1000);
     const reminderMinutes = clampNumber(event.reminderMinutes, 0, 1440, DEFAULT_REMINDER_MINUTES);
@@ -103,11 +104,6 @@ const buildReminderIcs = (event) => {
     const alarmText = `Reminder: ${event.title}`;
 
     return [
-        "BEGIN:VCALENDAR",
-        "VERSION:2.0",
-        "PRODID:-//SkinAnalysis AI//Schedule Reminder//EN",
-        "CALSCALE:GREGORIAN",
-        "METHOD:PUBLISH",
         "BEGIN:VEVENT",
         `UID:${escapeIcsValue(event.id)}@skinanalysis-ai.local`,
         `DTSTAMP:${toIcsUtc(new Date())}`,
@@ -122,6 +118,32 @@ const buildReminderIcs = (event) => {
         `TRIGGER:-PT${Math.max(reminderMinutes, 0)}M`,
         "END:VALARM",
         "END:VEVENT",
+    ];
+};
+
+const buildReminderIcs = (event) => {
+    return [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        `PRODID:${CALENDAR_PROD_ID}`,
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        ...buildIcsEventSection(event),
+        "END:VCALENDAR",
+        "",
+    ].join("\r\n");
+};
+
+const buildCalendarIcs = (calendarEvents) => {
+    const safeEvents = Array.isArray(calendarEvents) ? calendarEvents : [];
+    const eventSections = safeEvents.flatMap((event) => buildIcsEventSection(event));
+    return [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        `PRODID:${CALENDAR_PROD_ID}`,
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        ...eventSections,
         "END:VCALENDAR",
         "",
     ].join("\r\n");
@@ -165,6 +187,7 @@ export const initScheduleModule = ({ elements, hooks = {} }) => {
         scheduleFilterCountScan,
         scheduleFilterCountAppointment,
         scheduleFilterCountReminder,
+        scheduleExportAllBtn,
         scheduleListTitle,
         scheduleEventList,
         scheduleDetailDate,
@@ -597,6 +620,21 @@ export const initScheduleModule = ({ elements, hooks = {} }) => {
         window.setTimeout(() => URL.revokeObjectURL(url), 250);
     };
 
+    const saveCalendarFile = (calendarEvents) => {
+        const ics = buildCalendarIcs(calendarEvents);
+        const today = new Date();
+        const dateStamp = `${today.getFullYear()}${pad(today.getMonth() + 1)}${pad(today.getDate())}`;
+        const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = `skinanalysis-schedule-${dateStamp}.ics`;
+        document.body.append(anchor);
+        anchor.click();
+        anchor.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 250);
+    };
+
     const updateCompletedState = async (eventId, completed) => {
         const payload = await requestJson(`/api/schedule/events/${encodeURIComponent(eventId)}`, {
             method: "PATCH",
@@ -735,6 +773,17 @@ export const initScheduleModule = ({ elements, hooks = {} }) => {
             saveFilter(activeFilter);
             render();
         });
+    });
+
+    scheduleExportAllBtn?.addEventListener("click", () => {
+        const exportEvents = events
+            .filter((event) => !event.completed && isUpcoming(event))
+            .sort(sortEvents);
+        if (!exportEvents.length) {
+            showRuntimeError("No upcoming events available to export.");
+            return;
+        }
+        saveCalendarFile(exportEvents);
     });
 
     scheduleAddEventBtn?.addEventListener("click", openModal);

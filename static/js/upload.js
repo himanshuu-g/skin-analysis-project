@@ -118,6 +118,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const scheduleFilterCountScan = document.getElementById("scheduleFilterCountScan");
     const scheduleFilterCountAppointment = document.getElementById("scheduleFilterCountAppointment");
     const scheduleFilterCountReminder = document.getElementById("scheduleFilterCountReminder");
+    const scheduleExportAllBtn = document.getElementById("scheduleExportAllBtn");
     const scheduleListTitle = document.getElementById("scheduleListTitle");
     const scheduleEventList = document.getElementById("scheduleEventList");
     const scheduleDetailDate = document.getElementById("scheduleDetailDate");
@@ -951,6 +952,7 @@ document.addEventListener("DOMContentLoaded", () => {
             scheduleFilterCountScan,
             scheduleFilterCountAppointment,
             scheduleFilterCountReminder,
+            scheduleExportAllBtn,
             scheduleListTitle,
             scheduleEventList,
             scheduleDetailDate,
