@@ -40,7 +40,7 @@
 
             <nav class="landing-nav" aria-label="Primary">
                 <a href="#features">Features</a>
-                <a href="#how-it-works">How It Works</a>
+                <a href="#about">About</a>
                 <a href="#gallery">Gallery</a>
             </nav>
 
@@ -62,13 +62,13 @@
                     AI-POWERED ANALYSIS
                 </p>
 
-                <h1 id="how-it-works">
+                <h1>
                     <span class="headline-dark">Know Your Skin.</span>
                     <span class="headline-accent">Love Your Skin.</span>
                 </h1>
 
                 <p class="hero-description">
-                    Advanced AI technology analyzes your unique skin profile and delivers personalized recommendations tailored to your needs. Get started in seconds.
+                    SkinAnalysis AI is an academic full-stack prototype that classifies facial skin type, explains predictions with Grad-CAM, and turns each scan into actionable skincare guidance.
                 </p>
 
                 <div class="hero-actions">
@@ -115,7 +115,7 @@
                 <p class="gallery-label">GALLERY</p>
                 <h2>See the Transformation</h2>
                 <p class="gallery-subtitle">
-                    Real results from real people. Our AI-driven approach delivers visible, lasting improvements.
+                    Key screens from the system workflow, covering analysis, explainability, and personalized care support.
                 </p>
             </div>
 
@@ -168,7 +168,7 @@
                         </svg>
                     </div>
                     <h3>Scan &amp; Detect</h3>
-                    <p>Upload a selfie and our AI instantly maps your skin's texture, tone, and concerns with clinical precision.</p>
+                    <p>Upload a facial image and the model predicts dry, normal, or oily skin using the trained CNN pipeline.</p>
                 </article>
 
                 <article class="workflow-card">
@@ -178,7 +178,7 @@
                         </svg>
                     </div>
                     <h3>Protect &amp; Prevent</h3>
-                    <p>Receive proactive recommendations to shield your skin from damage and prevent future concerns.</p>
+                    <p>Each prediction is paired with explainable Grad-CAM output, skincare advice, and product suggestions.</p>
                 </article>
 
                 <article class="workflow-card">
@@ -188,7 +188,7 @@
                         </svg>
                     </div>
                     <h3>Track &amp; Transform</h3>
-                    <p>Monitor your skin's journey over time with detailed progress tracking and adaptive routines.</p>
+                    <p>Users can store scan history, review trends, manage routines, and sync follow-up schedule reminders.</p>
                 </article>
             </div>
         </section>
@@ -238,10 +238,7 @@
                         <input id="home_login_email" name="email" type="email" placeholder="jane@example.com" required>
                     </div>
 
-                    <div class="auth-label-row">
-                        <label for="home_login_password">Password</label>
-                        <a href="{{ url_for('login') }}">Forgot password?</a>
-                    </div>
+                    <label for="home_login_password">Password</label>
                     <div class="auth-input-wrap">
                         <svg class="auth-input-icon" viewBox="0 0 24 24" aria-hidden="true">
                             <rect x="5" y="10" width="14" height="10" rx="2" />
@@ -303,26 +300,111 @@
 
                     <button type="submit" class="auth-submit-btn">Create Account</button>
                 </form>
-
-                <div class="auth-divider">
-                    <span>or continue with</span>
-                </div>
-
-                <div class="auth-social">
-                    <button type="button" class="auth-social-btn">
-                        <span class="social-google" aria-hidden="true">G</span>
-                        Google
-                    </button>
-                    <button type="button" class="auth-social-btn">
-                        <span class="social-apple" aria-hidden="true">&#63743;</span>
-                        Apple
-                    </button>
-                </div>
             </div>
 
             <p class="auth-terms">
-                By continuing, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+                Academic demo access uses the built-in email and password authentication flow only.
             </p>
+        </section>
+
+        <section class="about-section" id="about" aria-labelledby="aboutTitle">
+            <div class="about-panel">
+                <div class="about-header">
+                    <span class="about-brand-chip" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M4.3 13.2c0-5 4-9 9-9h5.5v5.5c0 5-4 9-9 9H4.3z"></path>
+                            <path d="M6.3 16.5c3.7-.2 6.8-2.1 9.1-5.3"></path>
+                        </svg>
+                    </span>
+                    <div>
+                        <h2 id="aboutTitle">College Project Overview</h2>
+                        <p>Explainable AI web application for skin-type classification, recommendations, and user tracking.</p>
+                    </div>
+                </div>
+
+                <p class="about-badge">Academic prototype with full-stack deployment support</p>
+
+                <div class="about-owner">
+                    <p><span>Project focus:</span> combine secure web engineering with practical computer vision and explainable AI.</p>
+                    <p><span>Demo goal:</span> show a complete user journey from signup to scan analysis, history review, and schedule planning.</p>
+                </div>
+
+                <div class="about-grid">
+                    <section class="about-block">
+                        <h3>What This System Demonstrates</h3>
+                        <p>SkinAnalysis AI is built as a complete end-to-end product instead of just a notebook model. The current version includes:</p>
+                        <ul class="about-checklist">
+                            <li>Secure signup, login, logout, and CSRF-protected routes</li>
+                            <li>Image upload validation, CNN inference, and Grad-CAM explainability</li>
+                            <li>User history, skincare routines, schedule sync, and admin monitoring</li>
+                        </ul>
+                    </section>
+
+                    <section class="about-block">
+                        <h3>Technology Stack</h3>
+                        <div class="tech-stack-grid">
+                            <article class="tech-card">
+                                <h4>Backend</h4>
+                                <div class="tech-pills">
+                                    <span>Flask</span>
+                                    <span>Gunicorn</span>
+                                    <span>Jinja</span>
+                                </div>
+                            </article>
+                            <article class="tech-card">
+                                <h4>Machine Learning</h4>
+                                <div class="tech-pills">
+                                    <span>TensorFlow</span>
+                                    <span>MobileNetV2</span>
+                                    <span>Grad-CAM</span>
+                                </div>
+                            </article>
+                            <article class="tech-card">
+                                <h4>Data Layer</h4>
+                                <div class="tech-pills">
+                                    <span>MongoDB</span>
+                                    <span>Indexes</span>
+                                    <span>User-scoped data</span>
+                                </div>
+                            </article>
+                            <article class="tech-card">
+                                <h4>Frontend</h4>
+                                <div class="tech-pills">
+                                    <span>Responsive CSS</span>
+                                    <span>Modular JS</span>
+                                    <span>Dashboard UI</span>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="about-grid">
+                    <section class="about-block">
+                        <h3>Latest Model Performance</h3>
+                        <p>Latest verified evaluation on {{ model_performance.evaluated_at }} using {{ model_performance.sample_count }} held-out test images.</p>
+                        <ul class="about-meta-list">
+                            <li><strong>Overall accuracy:</strong> {{ model_performance.overall_accuracy }}</li>
+                            <li><strong>Strongest class:</strong> {{ model_performance.best_class_label }} (F1 {{ model_performance.best_class_f1 }})</li>
+                            <li><strong>Weakest class:</strong> {{ model_performance.weakest_class_label }} (F1 {{ model_performance.weakest_class_f1 }})</li>
+                        </ul>
+                        <div class="about-purpose">
+                            <h4>Evaluation note</h4>
+                            <p>{{ model_performance.summary_note }}</p>
+                        </div>
+                    </section>
+
+                    <section class="about-block">
+                        <h3>Demo Talking Points</h3>
+                        <ul class="about-meta-list">
+                            <li><strong>Problem:</strong> users often choose skincare without correctly identifying skin type.</li>
+                            <li><strong>Solution:</strong> classify skin from images, explain the result, and connect it to personalized care actions.</li>
+                            <li><strong>Engineering value:</strong> combines ML, backend security, user data persistence, and a deployable UI.</li>
+                            <li><strong>Honest limitation:</strong> current accuracy is prototype-level, so the app should be presented as decision support rather than diagnosis.</li>
+                        </ul>
+                    </section>
+                </div>
+            </div>
         </section>
     </main>
 
@@ -337,9 +419,9 @@
             </a>
 
             <nav class="landing-footer-nav" aria-label="Footer">
-                <a href="#">Privacy</a>
-                <a href="#">Terms</a>
-                <a href="#">Contact</a>
+                <a href="#features">Features</a>
+                <a href="#about">Project Scope</a>
+                <a href="#auth-section">Start Demo</a>
             </nav>
 
             <p class="landing-footer-copy">2026 SkinAnalysis AI. All rights reserved.</p>

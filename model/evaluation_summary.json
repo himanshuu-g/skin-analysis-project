@@ -1,0 +1,35 @@
+{
+  "evaluated_at": "2026-03-23",
+  "dataset_dir": "dataset/split/test",
+  "sample_count": 356,
+  "overall_accuracy": 51.97,
+  "confusion_matrix": [
+    [54, 25, 19],
+    [31, 91, 37],
+    [20, 39, 40]
+  ],
+  "classes": [
+    {
+      "name": "dry",
+      "precision": 51.43,
+      "recall": 55.1,
+      "f1": 53.2,
+      "support": 98
+    },
+    {
+      "name": "normal",
+      "precision": 58.71,
+      "recall": 57.23,
+      "f1": 57.96,
+      "support": 159
+    },
+    {
+      "name": "oily",
+      "precision": 41.67,
+      "recall": 40.4,
+      "f1": 41.03,
+      "support": 99
+    }
+  ],
+  "summary": "Prototype-level classifier. Normal skin is currently the strongest class, while oily skin remains the weakest and needs more balanced data and tuning."
+}

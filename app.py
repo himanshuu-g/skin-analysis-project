@@ -53,6 +53,7 @@ app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 app.jinja_env.auto_reload = True
 
 UPLOAD_FOLDER = "static/uploads"
+EVALUATION_SUMMARY_PATH = os.path.join("model", "evaluation_summary.json")
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/bmp", "image/webp"}
 ALLOWED_IMAGE_FORMATS = {"JPEG", "PNG", "BMP", "WEBP"}
@@ -455,6 +456,89 @@ def _build_home_stats():
         stats["avg_confidence_value"] = "0%"
 
     return stats
+
+
+def _build_model_performance_summary():
+    summary = {
+        "available": False,
+        "evaluated_at": "Not available",
+        "sample_count": "N/A",
+        "overall_accuracy": "Not available",
+        "best_class_label": "N/A",
+        "best_class_f1": "N/A",
+        "weakest_class_label": "N/A",
+        "weakest_class_f1": "N/A",
+        "classes": [],
+        "summary_note": "Run evaluate_model.py and update model/evaluation_summary.json.",
+    }
+
+    if not os.path.exists(EVALUATION_SUMMARY_PATH):
+        return summary
+
+    try:
+        with open(EVALUATION_SUMMARY_PATH, "r", encoding="utf-8") as fp:
+            payload = json.load(fp)
+    except (OSError, json.JSONDecodeError):
+        return summary
+
+    raw_classes = payload.get("classes", [])
+    classes = []
+    for item in raw_classes:
+        if not isinstance(item, dict):
+            continue
+        class_name = str(item.get("name", "")).strip()
+        if not class_name:
+            continue
+        try:
+            f1_value = float(item.get("f1", 0.0))
+        except (TypeError, ValueError):
+            f1_value = 0.0
+        classes.append(
+            {
+                "label": class_name.capitalize(),
+                "f1": f"{_format_score_value(f1_value)}%",
+                "support": str(int(item.get("support", 0) or 0)),
+            }
+        )
+
+    try:
+        accuracy_value = float(payload.get("overall_accuracy", 0.0))
+        summary["overall_accuracy"] = f"{_format_score_value(accuracy_value)}%"
+    except (TypeError, ValueError):
+        summary["overall_accuracy"] = "Not available"
+
+    sample_count = payload.get("sample_count")
+    if isinstance(sample_count, (int, float)):
+        summary["sample_count"] = str(int(sample_count))
+
+    evaluated_at = str(payload.get("evaluated_at", "")).strip()
+    if evaluated_at:
+        summary["evaluated_at"] = evaluated_at
+
+    if classes:
+        summary["available"] = True
+        summary["classes"] = classes
+
+        strongest = max(
+            raw_classes,
+            key=lambda item: float(item.get("f1", 0.0) or 0.0),
+        )
+        weakest = min(
+            raw_classes,
+            key=lambda item: float(item.get("f1", 0.0) or 0.0),
+        )
+        summary["best_class_label"] = str(strongest.get("name", "N/A")).capitalize()
+        summary["best_class_f1"] = f"{_format_score_value(float(strongest.get('f1', 0.0) or 0.0))}%"
+        summary["weakest_class_label"] = str(weakest.get("name", "N/A")).capitalize()
+        summary["weakest_class_f1"] = f"{_format_score_value(float(weakest.get('f1', 0.0) or 0.0))}%"
+        summary["summary_note"] = str(
+            payload.get(
+                "summary",
+                "Prototype-level model performance with room for improvement.",
+            )
+        ).strip()
+
+    return summary
 
 
 def _extract_routine_steps(raw_steps, max_steps=4):
@@ -962,6 +1046,7 @@ def home():
         "home.html",
         auth_notice=_pop_auth_notice(),
         home_stats=_build_home_stats(),
+        model_performance=_build_model_performance_summary(),
     )
 
 
